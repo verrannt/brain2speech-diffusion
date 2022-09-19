@@ -213,7 +213,7 @@ class WaveNet(nn.Module):
         return f"wavenet_h{self.res_channels}_d{self.num_res_layers}_{'uncond' if self.unconditional else 'cond'}"
 
     @classmethod
-    def name(cls, cfg):
+    def name(cls, model_cfg):
         return "wnet_h{}_d{}".format(
             model_cfg["res_channels"],
             model_cfg["num_res_layers"],
