@@ -1,5 +1,7 @@
 import torch
 from torch.utils.data.distributed import DistributedSampler
+
+from .csv_dataset import CSVDataset
 from .sc import SpeechCommands
 from .mel2samp import Mel2Samp
 
@@ -7,7 +9,13 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
     # TODO would be nice if unconditional was decoupled from dataset
 
     dataset_name = dataset_cfg.pop("_name_")
-    if dataset_name == "sc09":
+    if dataset_name == "csv":
+        assert unconditional
+        dataset = CSVDataset(
+            path = dataset_cfg.data_path, 
+            subset = "train", 
+            sample_length = dataset_cfg.segment_length)
+    elif dataset_name == "sc09":
         assert unconditional
         dataset = SpeechCommands(dataset_cfg.data_path)
     elif dataset_name == "ljspeech":
@@ -26,4 +34,5 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         pin_memory=False,
         drop_last=True,
     )
+
     return trainloader
