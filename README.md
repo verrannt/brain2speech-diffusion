@@ -1,5 +1,7 @@
 # DiffWave Unconditional Dutch
 
+:warning: **Disclaimer:**
+
 This is a fork of the [DiffWave-SaShiMi repository by albertfgu](https://github.com/albertfgu/diffwave-sashimi) to train the model on Dutch spoken data in the unconditional setting.
 
 It's in development and changes are not well documented. I do not recommend working with this repository in its current state, but if you are interested in doing so anyways, please reach out to me before.
