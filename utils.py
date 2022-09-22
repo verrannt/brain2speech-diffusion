@@ -22,8 +22,8 @@ def rescale(x):
 
 def find_max_epoch(path):
     """
-    Find maximum epoch/iteration in path, formatted ${n_iter}.pkl
-    E.g. 100000.pkl
+    Find maximum epoch/iteration in path, formatted ${n_epoch}.pkl
+    E.g. 100.pkl
 
     Parameters:
     path (str): checkpoint path
@@ -43,35 +43,6 @@ def find_max_epoch(path):
             except:
                 continue
     return epoch
-
-def smooth_ckpt(path, min_ckpt, max_ckpt, alpha=None):
-    print(f"finding checkpoints in ({min_ckpt}, {max_ckpt}] in {path}")
-    files = os.listdir(path)
-    ckpts = []
-    for f in files:
-        if len(f) <= 4:
-            continue
-        if f[-4:]  == '.pkl':
-            print(f)
-            try:
-                it = int(f[:-4])
-                if min_ckpt < it and it <= max_ckpt:
-                    ckpts.append(it)
-            except:
-                continue
-    ckpts = sorted(ckpts)
-    print("found ckpts", ckpts)
-    state_dict = None
-    for n, it in enumerate(ckpts):
-        model_path = os.path.join(path, '{}.pkl'.format(it))
-        try:
-            checkpoint = torch.load(model_path, map_location='cpu')
-            # net.load_state_dict(checkpoint['model_state_dict'])
-            state_dict = smooth_dict(state_dict, checkpoint['model_state_dict'], n, alpha=alpha)
-            print('Successfully loaded model at iteration {}'.format(it))
-        except:
-            raise Exception(f'No valid model found at iteration {it}, path {model_path}')
-    return state_dict
 
 
 def print_size(net, verbose=False):
@@ -114,7 +85,8 @@ def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_director
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
-    print("output directory", output_directory, flush=True)
+        
+    # print("output directory", output_directory, flush=True)
     return local_path, output_directory
 
 
@@ -151,30 +123,3 @@ def calc_diffusion_hyperparams(T, beta_0, beta_T, beta=None, fast=False):
     _dh = {}
     _dh["T"], _dh["Beta"], _dh["Alpha"], _dh["Alpha_bar"], _dh["Sigma"] = T, Beta.cuda(), Alpha.cuda(), Alpha_bar.cuda(), Sigma
     return _dh
-
-
-""" Experimental feature for checkpoint smoothing. Didn't seem to help in brief tests """
-def smooth_dict(d, d0, n=None, alpha=None):
-    """ Smooth with arithmetic average (if n not None) or geometric average (if alpha not None) """
-    assert int(n is None) + int(alpha is None) == 1
-    if d is None:
-        assert n is None or n == 0 # must be first iteration
-        return d0
-
-    if n is not None:
-        avg_fn = lambda x, y: (x * n + y) / (n+1)
-    else:
-        avg_fn = lambda x, y: alpha * x + (1. - alpha) * y
-    return _bin_op_dict(d, d0, avg_fn)
-
-def _bin_op_dict(d0, d1, op):
-    """ Apply binary operator recursively to two dictionaries with matching keys """
-    if isinstance(d0, dict) and isinstance(d1, dict):
-        assert d0.keys() == d1.keys(), "Dictionaries must hvae matching keys"
-        return {
-            k: _bin_op_dict(d0[k], d1[k], op) for k in d0.keys()
-        }
-    elif not isinstance(d0, dict) and not isinstance(d1, dict):
-        return op(d0, d1)
-    else: raise Exception("Dictionaries must match keys")
-
