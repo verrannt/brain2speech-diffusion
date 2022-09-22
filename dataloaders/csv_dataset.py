@@ -63,6 +63,7 @@ class CSVDataset(Dataset):
 
     def load_audio(self, file_path: str) -> Tuple[Tensor, int]:
         waveform, sample_rate = torchaudio.load(file_path)
+
         # NOTE We return an empty label here as the third tuple element to 
         # ensure compatibility across the APIs of all dataset loaders
         return (self.fix_length(waveform), sample_rate, "")
