@@ -1,14 +1,14 @@
 # DiffWave Unconditional Dutch
 
-:warning: **Disclaimer:**
+> :warning: **Disclaimer:**
+>
+> This is a fork of the [DiffWave-SaShiMi repository by albertfgu](https://github.com/albertfgu/diffwave-sashimi) to train the model on Dutch spoken data in the unconditional setting.
+>
+> It's in development and changes are not well documented. I do not recommend working with this repository in its current state, but if you are interested in doing so anyways, please reach out to me before.
+>
+> The rest of this Readme is the original one from albertfgu's repository.
 
-This is a fork of the [DiffWave-SaShiMi repository by albertfgu](https://github.com/albertfgu/diffwave-sashimi) to train the model on Dutch spoken data in the unconditional setting.
-
-It's in development and changes are not well documented. I do not recommend working with this repository in its current state, but if you are interested in doing so anyways, please reach out to me before.
-
-The rest of this Readme is the original one from albertfgu's repository.
-
----
+## :point_down: Original ReadMe
 
 This repository is an implementation of the waveform synthesizer in [DIFFWAVE: A VERSATILE DIFFUSION MODEL FOR AUDIO SYNTHESIS](https://arxiv.org/pdf/2009.09761.pdf).
 It also has code to reproduce the SaShiMi+DiffWave experiments from [It’s Raw! Audio Generation with State-Space Models](https://arxiv.org/abs/2202.09729) (Goel et al. 2022).
