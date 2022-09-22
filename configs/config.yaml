@@ -1,20 +1,19 @@
 defaults:
   - _self_
-  - experiment: sc09
+  - experiment: variants
 
 train: # Not used in generate.py
-  name: null # Name of experiment (prefix of experiment name)
-  ckpt_iter: max
-  iters_per_ckpt: 10000
+  name: walltime-est # Name of experiment (prefix of experiment name)
+  ckpt_epoch: max
+  epochs_per_ckpt: 1
   iters_per_logging: 100
-  n_iters: 1000001
+  n_epochs: 1
   learning_rate: 2e-4
-  batch_size_per_gpu: 4
+  batch_size_per_gpu: 14
 
 generate:
-  ckpt_iter: max # Which checkpoint to use; assign a number or "max". Is ignored when sampling during training
-  ckpt_smooth: null # Which checkpoint to start averaging from (experimental feature, can ignore)
-  n_samples: 16 # Number of utterances to be generated (per GPU)
+  ckpt_epoch: max # Which checkpoint to use; assign a number or "max". Is ignored when sampling during training
+  n_samples: 4 # Number of utterances to be generated (per GPU)
   batch_size: null # Number of samples to generate at once per GPU. null means max (equal to samples_per_gpu)
   mel_path: null # Folder of preprocessed spectrograms (optional)
   mel_name: null # Name of specific spectrogram to condition on (set to null for unconditional, set to an audio file name for vocoding)
@@ -25,7 +24,7 @@ distributed:
 
 wandb:
   mode: disabled # Pass in 'wandb.mode=online' to turn on wandb logging
-  project: sashimi
-  entity: null
+  project: diffwave-dutch-unconditional
+  entity: pascalschroeder
   id: null # Set to string to resume logging from run
   job_type: training

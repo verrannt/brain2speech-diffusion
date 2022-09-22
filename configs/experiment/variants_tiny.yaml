@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /model: wavenet_small
+  - /dataset: variants_tiny
+
+diffusion:
+  T: 20
+  beta_0: 0.0001
+  beta_T: 0.02
+  beta: null

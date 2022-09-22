@@ -1,0 +1,22 @@
+# Config file for the VariaNTS dataset loaded from a .csv file pointing to the 
+# appropriate locations on disk.
+# NOTE This is for debugging purposes only, as the tiny subset that is selected here only
+# used 1.5% of the full VariaNTS words corpus, and the segment length is limited to 10k.
+# This should be useful to quickly run training and inference and therefore see if the code
+# works well. However, this will not produce good results
+
+_name_: variants
+data_path: /home/passch/thesis/data_paths/VariaNTS/tiny_subset0.015-50-25-25
+segment_length: 10000
+sampling_rate: 44100
+
+# The following percentiles for the VariaNTS word lengths may help in 
+# choosing a segment length:
+# 0.50    23322.00
+# 0.70    26693.50
+# 0.80    28860.40
+# 0.84    30080.60
+# 0.90    32187.00
+# 0.95    35061.15
+# 0.99    40267.10
+# max     54195.00
