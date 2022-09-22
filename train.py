@@ -49,14 +49,14 @@ def distributed_train(rank, num_gpus, group_name, cfg):
 def train(
     rank, num_gpus,
     diffusion_cfg, model_cfg, dataset_cfg, generate_cfg, # dist_cfg, wandb_cfg, # train_cfg,
-    ckpt_iter, n_iters, iters_per_ckpt, iters_per_logging,
+    ckpt_epoch, n_epochs, epochs_per_ckpt, iters_per_logging,
     learning_rate, batch_size_per_gpu,
     # n_samples,
     name=None,
     # mel_path=None,
 ):
     """
-    Parameters:
+    Parameters: TODO Change params to epoch level 
     ckpt_iter (int or 'max'):       the pretrained checkpoint to be loaded;
                                     automitically selects the maximum iteration if 'max' is selected
     n_iters (int):                  number of iterations to train, default is 1M
@@ -72,56 +72,68 @@ def train(
 
     local_path, checkpoint_directory = local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, 'checkpoint')
 
-    # map diffusion hyperparameters to gpu
-    diffusion_hyperparams   = calc_diffusion_hyperparams(**diffusion_cfg, fast=False)  # dictionary of all diffusion hyperparameters
+    # Map diffusion hyperparameters to gpu
+    diffusion_hyperparams = calc_diffusion_hyperparams(
+        **diffusion_cfg, 
+        fast=False
+    )  # dictionary of all diffusion hyperparameters
 
-    # load training data
-    trainloader = dataloader(dataset_cfg, batch_size=batch_size_per_gpu, num_gpus=num_gpus, unconditional=model_cfg.unconditional)
+    trainloader, valloader, testloader = dataloader(
+        dataset_cfg, 
+        batch_size = batch_size_per_gpu, 
+        num_gpus = num_gpus, 
+        unconditional = model_cfg.unconditional
+    )
     print('Data loaded')
 
-    # predefine model
     net = construct_model(model_cfg).cuda()
     print_size(net, verbose=False)
 
-    # apply gradient all reduce
     if num_gpus > 1:
         net = apply_gradient_allreduce(net)
 
-    # define optimizer
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
-    # load checkpoint
-    if ckpt_iter == 'max':
-        ckpt_iter = find_max_epoch(checkpoint_directory)
-    if ckpt_iter >= 0:
+    # Load checkpoint
+    if ckpt_epoch == 'max':
+        ckpt_epoch = find_max_epoch(checkpoint_directory)
+    if ckpt_epoch >= 0:
         try:
-            # load checkpoint file
-            model_path = os.path.join(checkpoint_directory, '{}.pkl'.format(ckpt_iter))
+            # Load checkpoint file
+            model_path = os.path.join(checkpoint_directory, '{}.pkl'.format(ckpt_epoch))
             checkpoint = torch.load(model_path, map_location='cpu')
 
-            # feed model dict and optimizer state
+            # Feed model dict and optimizer state
             net.load_state_dict(checkpoint['model_state_dict'])
             if 'optimizer_state_dict' in checkpoint:
                 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 # HACK to reset learning rate
                 optimizer.param_groups[0]['lr'] = learning_rate
 
-            print('Successfully loaded model at iteration {}'.format(ckpt_iter))
+            print('Successfully loaded model at epoch {}'.format(ckpt_epoch))
         except:
-            print(f"Model checkpoint found at iteration {ckpt_iter}, but was not successfully loaded - training from scratch.")
-            ckpt_iter = -1
+            print(f"Model checkpoint found at epoch {ckpt_epoch}, but was not successfully loaded - training from scratch.")
+            ckpt_epoch = -1
     else:
         print('No valid checkpoint model found - training from scratch.')
-        ckpt_iter = -1
+        ckpt_epoch = -1
 
-    # training
-    n_iter = ckpt_iter + 1
-    while n_iter < n_iters + 1:
+    # TRAINING
+
+    # Continue iteration from checkpoint epoch number
+    if ckpt_epoch == -1:
+        start_epoch = 1
+    else:
+        start_epoch = ckpt_epoch + 1
+
+    for epoch in range(start_epoch, n_epochs+start_epoch):
+        print("\n" + "-"*100)
+        print(f"EPOCH {epoch}/{start_epoch+n_epochs-1}")
         epoch_loss = 0.
-        for data in tqdm(trainloader, desc=f'Epoch {n_iter // len(trainloader)}'):
+        print()
+        for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
             if model_cfg["unconditional"]:
                 audio, _, _ = data
-                # load audio
                 audio = audio.cuda()
                 mel_spectrogram = None
             else:
@@ -129,80 +141,148 @@ def train(
                 mel_spectrogram = mel_spectrogram.cuda()
                 audio = audio.cuda()
 
-            # back-propagation
             optimizer.zero_grad()
-            loss = training_loss(net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram)
+            loss = compute_loss(
+                net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+            )
+
             if num_gpus > 1:
                 reduced_loss = reduce_tensor(loss.data, num_gpus).item()
             else:
                 reduced_loss = loss.item()
+            
             loss.backward()
             optimizer.step()
 
             epoch_loss += reduced_loss
 
             # output to log
-            if n_iter % iters_per_logging == 0 and rank == 0:
-                # save training loss to tensorboard
-                # print("iteration: {} \treduced loss: {} \tloss: {}".format(n_iter, reduced_loss, loss.item()))
-                # tb.add_scalar("Log-Train-Loss", torch.log(loss).item(), n_iter)
-                # tb.add_scalar("Log-Train-Reduced-Loss", np.log(reduced_loss), n_iter)
+            if i % iters_per_logging == 0 and i != 0 and rank == 0:
                 wandb.log({
                     'train/loss': reduced_loss,
                     'train/log_loss': np.log(reduced_loss),
-                }, step=n_iter)
+                }, step=i)
+                print(f"\nStep {i} Train Loss: {reduced_loss}")
 
-            # save checkpoint
-            if n_iter % iters_per_ckpt == 0 and rank == 0:
-                checkpoint_name = '{}.pkl'.format(n_iter)
-                torch.save({'model_state_dict': net.state_dict(),
-                            'optimizer_state_dict': optimizer.state_dict()},
-                           os.path.join(checkpoint_directory, checkpoint_name))
-                print('model at iteration %s is saved' % n_iter)
-
-                # Generate samples
-                # if model_cfg["unconditional"]:
-                #     mel_path = None
-                #     mel_name = None
-                # else:
-                #     assert mel_path is not None
-                #     mel_name=generate_cfg.mel_name # "LJ001-0001"
-                if not model_cfg["unconditional"]: assert generate_cfg.mel_name is not None
-                generate_cfg["ckpt_iter"] = n_iter
-                samples = generate(
-                    rank, # n_iter,
-                    diffusion_cfg, model_cfg, dataset_cfg,
-                    name=name,
-                    **generate_cfg,
-                    # n_samples, n_iter, name,
-                    # mel_path=mel_path,
-                    # mel_name=mel_name,
-                )
-                samples = [wandb.Audio(sample.squeeze().cpu(), sample_rate=dataset_cfg['sampling_rate']) for sample in samples]
-                wandb.log(
-                    {'inference/audio': samples},
-                    step=n_iter,
-                    # commit=False,
-                )
-
-            n_iter += 1
+        # Log average epoch loss
         if rank == 0:
             epoch_loss /= len(trainloader)
-            wandb.log({'train/loss_epoch': epoch_loss, 'train/log_loss_epoch': np.log(epoch_loss)}, step=n_iter)
+            wandb.log({
+                'train/loss_epoch': epoch_loss, 
+                'train/log_loss_epoch': np.log(epoch_loss)
+            }, step=epoch)
+            print(f"Loss: {epoch_loss}")
+
+        # Save checkpoint
+        if epoch % epochs_per_ckpt == 0 and rank == 0:
+            checkpoint_name = f'{epoch}.pkl'
+            torch.save({'model_state_dict': net.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict()},
+                        os.path.join(checkpoint_directory, checkpoint_name))
+            print('Created model checkpoint')
+
+            # Generate samples
+            if not model_cfg["unconditional"]: 
+                assert generate_cfg.mel_name is not None
+
+            generate_cfg["ckpt_epoch"] = epoch
+            
+            samples = generate( 
+                rank,
+                diffusion_cfg, 
+                model_cfg, 
+                dataset_cfg,
+                name=name,
+                **generate_cfg,
+            )
+
+            samples = [
+                wandb.Audio(
+                    sample.squeeze().cpu(), 
+                    sample_rate = dataset_cfg['sampling_rate']
+                ) for sample in samples
+            ]
+
+            wandb.log(
+                {'inference/audio': samples},
+                step=epoch,
+            )
+        
+
+        # VALIDATION
+
+        if valloader and rank == 0:
+            print()
+            val_loss = 0
+            for data in tqdm(valloader, desc='Validating', ncols=100):
+                if model_cfg["unconditional"]:
+                    audio, _, _ = data
+                    audio = audio.cuda()
+                    mel_spectrogram = None
+                else:
+                    mel_spectrogram, audio = data
+                    mel_spectrogram = mel_spectrogram.cuda()
+                    audio = audio.cuda()
+
+                loss_value = compute_loss(
+                    net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+                ).item()
+
+                # Note that we do call `reduce_tensor` on the loss here like
+                # we do in the train loop, since this validation loop only
+                # runs on one GPU.
+
+                val_loss += loss_value
+
+            val_loss /= len(valloader)
+            wandb.log({
+                'val/loss': val_loss,
+                'val/log_loss': np.log(val_loss),
+            }, step=epoch)
+            print(f"Loss: {val_loss}")
+
+
+    # TESTING
+
+    if testloader and rank == 0:
+        print("\n" + "-"*100 + "\n")
+        test_loss = 0.
+        for data in tqdm(testloader, desc='Testing', ncols=100):
+            if model_cfg["unconditional"]:
+                audio, _, _ = data
+                audio = audio.cuda()
+                mel_spectrogram = None
+            else:
+                mel_spectrogram, audio = data
+                mel_spectrogram = mel_spectrogram.cuda()
+                audio = audio.cuda()
+
+            loss_value = compute_loss(
+                net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+            ).item()
+
+            test_loss += loss_value
+
+        test_loss /= len(testloader)
+        wandb.log({
+            'test/loss': test_loss,
+            'test/log_loss': np.log(test_loss),
+        }, step=epoch)
+        print(f"Loss: {test_loss}")
+
 
     # Close logger
     if rank == 0:
-        # tb.close()
         wandb.finish()
 
-def training_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None):
+def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None):
     """
     Compute the training loss of epsilon and epsilon_theta
 
     Parameters:
     net (torch network):            the wavenet model
     loss_fn (torch loss function):  the loss function, default is nn.MSELoss()
-    X (torch.tensor):               training data, shape=(batchsize, 1, length of audio)
+    audio (torch.tensor):           training data, shape=(batchsize, 1, length of audio)
     diffusion_hyperparams (dict):   dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams
                                     note, the tensors need to be cuda tensors
 
@@ -213,12 +293,18 @@ def training_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None):
     _dh = diffusion_hyperparams
     T, Alpha_bar = _dh["T"], _dh["Alpha_bar"]
 
-    # audio = X
     B, C, L = audio.shape  # B is batchsize, C=1, L is audio length
-    diffusion_steps = torch.randint(T, size=(B,1,1)).cuda()  # randomly sample diffusion steps from 1~T
+    
+    # randomly sample diffusion steps from 1~T
+    diffusion_steps = torch.randint(T, size=(B,1,1)).cuda()
     z = torch.normal(0, 1, size=audio.shape).cuda()
-    transformed_X = torch.sqrt(Alpha_bar[diffusion_steps]) * audio + torch.sqrt(1-Alpha_bar[diffusion_steps]) * z  # compute x_t from q(x_t|x_0)
-    epsilon_theta = net((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)  # predict \epsilon according to \epsilon_\theta
+
+    # compute x_t from q(x_t|x_0)
+    transformed_X = torch.sqrt(Alpha_bar[diffusion_steps]) * audio + torch.sqrt(1-Alpha_bar[diffusion_steps]) * z
+    
+    # predict \epsilon according to \epsilon_\theta
+    epsilon_theta = net((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)
+
     return loss_fn(epsilon_theta, z)
 
 
