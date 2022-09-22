@@ -1,24 +1,17 @@
 import os
-import time
-# import warnings
-# warnings.filterwarnings("ignore")
 
 from functools import partial
 import multiprocessing as mp
 
-import numpy as np
 import torch
-import torch.nn as nn
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
-# from torch.utils.tensorboard import SummaryWriter # If tensorboard is preferred over wandb
 
 from scipy.io.wavfile import write as wavwrite
-# from scipy.io.wavfile import read as wavread
 
 from models import construct_model
-from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory, smooth_ckpt
+from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
 def sampling(net, size, diffusion_hyperparams, condition=None):
     """
@@ -42,16 +35,20 @@ def sampling(net, size, diffusion_hyperparams, condition=None):
     assert len(Sigma) == T
     assert len(size) == 3
 
-    print('begin sampling, total number of reverse steps = %s' % T)
-
     x = torch.normal(0, 1, size=size).cuda()
     with torch.no_grad():
-        for t in tqdm(range(T-1, -1, -1)):
-            diffusion_steps = (t * torch.ones((size[0], 1))).cuda()  # use the corresponding reverse step
-            epsilon_theta = net((x, diffusion_steps,), mel_spec=condition)  # predict \epsilon according to \epsilon_\theta
-            x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  # update x_{t-1} to \mu_\theta(x_t)
+        for t in tqdm(range(T-1, -1, -1), desc='Sampling', ncols=100):
+            # use the corresponding reverse step
+            diffusion_steps = (t * torch.ones((size[0], 1))).cuda()
+
+            # predict \epsilon according to \epsilon_\theta
+            epsilon_theta = net((x, diffusion_steps,), mel_spec=condition)  
+            
+            # update x_{t-1} to \mu_\theta(x_t)
+            x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  
             if t > 0:
-                x = x + Sigma[t] * torch.normal(0, 1, size=size).cuda()  # add the variance term to x_{t-1}
+                # add the variance term to x_{t-1}
+                x = x + Sigma[t] * torch.normal(0, 1, size=size).cuda()  
     return x
 
 
@@ -61,79 +58,65 @@ def generate(
         diffusion_cfg,
         model_cfg,
         dataset_cfg,
-        ckpt_iter="max",
-        n_samples=1, # Samples per GPU
+        ckpt_epoch="max",
+        n_samples=1,
         name=None,
         batch_size=None,
-        ckpt_smooth=None,
-        mel_path=None, mel_name=None,
-        dataloader=None,
+        mel_path=None, 
+        mel_name=None,
     ):
     """
     Generate audio based on ground truth mel spectrogram
 
+    TODO Fix this docstring
     Parameters:
     output_directory (str):         checkpoint path
-    n_samples (int):                number of samples to generate, default is 4
-    ckpt_iter (int or 'max'):       the pretrained checkpoint to be loaded;
-                                    automatically selects the maximum iteration if 'max' is selected
+    n_samples (int):                number of samples to generate per GPU
+    ckpt_epoch (int or 'max'):      the pretrained checkpoint to be loaded;
+                                    automatically selects the maximum epoch if 'max' is selected
     mel_path, mel_name (str):       condition on spectrogram "{mel_path}/{mel_name}.wav.pt"
-    # dataloader:                     condition on spectrograms provided by dataloader
     """
 
+    print("\nGenerating:")
     if rank is not None:
-        print(f"rank {rank} {torch.cuda.device_count()} GPUs")
         torch.cuda.set_device(rank % torch.cuda.device_count())
 
     local_path, output_directory = local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, 'waveforms')
 
     # map diffusion hyperparameters to gpu
-    diffusion_hyperparams   = calc_diffusion_hyperparams(**diffusion_cfg, fast=True)  # dictionary of all diffusion hyperparameters
+    diffusion_hyperparams = calc_diffusion_hyperparams(**diffusion_cfg, fast=True)  # dictionary of all diffusion hyperparameters
 
     # predefine model
     net = construct_model(model_cfg).cuda()
-    print_size(net)
+    # print_size(net)
     net.eval()
 
     # load checkpoint
-    print('ckpt_iter', ckpt_iter)
+    print('Loading checkpoint at epoch', ckpt_epoch)
     ckpt_path = os.path.join('exp', local_path, 'checkpoint')
-    if ckpt_iter == 'max':
-        ckpt_iter = find_max_epoch(ckpt_path)
-    ckpt_iter = int(ckpt_iter)
+    if ckpt_epoch == 'max':
+        ckpt_epoch = find_max_epoch(ckpt_path)
+    ckpt_epoch = int(ckpt_epoch)
 
-    if ckpt_smooth is None:
-        try:
-            model_path = os.path.join(ckpt_path, '{}.pkl'.format(ckpt_iter))
-            checkpoint = torch.load(model_path, map_location='cpu')
-            net.load_state_dict(checkpoint['model_state_dict'])
-            print('Successfully loaded model at iteration {}'.format(ckpt_iter))
-        except:
-            raise Exception('No valid model found')
-    else:
-        state_dict = smooth_ckpt(ckpt_path, ckpt_smooth, ckpt_iter, alpha=None)
-        net.load_state_dict(state_dict)
+    try:
+        model_path = os.path.join(ckpt_path, f'{ckpt_epoch}.pkl')
+        checkpoint = torch.load(model_path, map_location='cpu')
+        net.load_state_dict(checkpoint['model_state_dict'])
+        # print(f'Successfully loaded model at epoch {ckpt_epoch}')
+    except:
+        raise Exception(f'No valid model found for epoch {ckpt_epoch} at path {ckpt_path}')
 
     # Add checkpoint number to output directory
-    output_directory = os.path.join(output_directory, str(ckpt_iter))
+    output_directory = os.path.join(output_directory, str(ckpt_epoch))
     if rank == 0:
         if not os.path.isdir(output_directory):
             os.makedirs(output_directory)
             os.chmod(output_directory, 0o775)
-        print("saving to output directory", output_directory)
 
     if batch_size is None:
         batch_size = n_samples
     assert n_samples % batch_size == 0
 
-    # if mel_path is not None and mel_name is not None:
-    #     # use ground truth mel spec
-    #     try:
-    #         ground_truth_mel_name = os.path.join(mel_path, '{}.wav.pt'.format(mel_name))
-    #         ground_truth_mel_spectrogram = torch.load(ground_truth_mel_name).unsqueeze(0).cuda()
-    #     except:
-    #         raise Exception('No ground truth mel spectrogram found')
-    #     audio_length = ground_truth_mel_spectrogram.shape[-1] * dataset_cfg["hop_length"]
     if mel_name is not None:
         if mel_path is not None: # pre-generated spectrogram
             # use ground truth mel spec
@@ -158,9 +141,10 @@ def generate(
         audio_length = ground_truth_mel_spectrogram.shape[-1] * dataset_cfg["hop_length"]
     else:
         # predefine audio shape
-        audio_length = dataset_cfg["segment_length"]  # 16000
+        audio_length = dataset_cfg["segment_length"]
         ground_truth_mel_spectrogram = None
-    print(f'begin generating audio of length {audio_length} | {n_samples} samples with batch size {batch_size}')
+
+    print(f'Audio length: {audio_length}, Samples: {n_samples}, Batch size: {batch_size}, Reverse steps (T): {diffusion_hyperparams["T"]}')
 
     # inference
     start = torch.cuda.Event(enable_timing=True)
@@ -181,24 +165,20 @@ def generate(
 
     end.record()
     torch.cuda.synchronize()
-    print('generated {} samples shape {} at iteration {} in {} seconds'.format(n_samples,
-        generated_audio.shape,
-        ckpt_iter,
-        int(start.elapsed_time(end)/1000)))
+    print('Generated {} samples with shape {} in {} seconds'.format(
+        n_samples,
+        list(generated_audio.shape),
+        int(start.elapsed_time(end)/1000)
+    ))
 
     # save audio to .wav
     for i in range(n_samples):
-        outfile = '{}k_{}.wav'.format(ckpt_iter // 1000, n_samples*rank + i)
+        outfile = 'epoch{}_{}.wav'.format(ckpt_epoch, n_samples*rank + i)
         wavwrite(os.path.join(output_directory, outfile),
                     dataset_cfg["sampling_rate"],
                     generated_audio[i].squeeze().cpu().numpy())
 
-        # save audio to tensorboard
-        # tb = SummaryWriter(os.path.join('exp', local_path, tensorboard_directory))
-        # tb.add_audio(tag=outfile, snd_tensor=generated_audio[i], sample_rate=dataset_cfg["sampling_rate"])
-        # tb.close()
-
-    print('saved generated samples at iteration %s' % ckpt_iter)
+    print(f'Saved generated samples at {output_directory}')
     return generated_audio
 
 
