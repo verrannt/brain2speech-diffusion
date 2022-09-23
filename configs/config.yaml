@@ -9,7 +9,7 @@ train: # Not used in generate.py
   iters_per_logging: 100
   n_epochs: 1
   learning_rate: 2e-4
-  batch_size_per_gpu: 14
+  batch_size_per_gpu: 8
 
 generate:
   ckpt_epoch: max # Which checkpoint to use; assign a number or "max". Is ignored when sampling during training
