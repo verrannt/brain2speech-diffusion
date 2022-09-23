@@ -52,7 +52,10 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         num_workers=4,
         pin_memory=False,
         drop_last=True,
-        shuffle=True,
+        # Using shuffle=True throws ValueError on Snellius when using
+        # distributed training:
+        # "sampler option is mutually exclusive with shuffle"
+        # shuffle=True,
     )
 
     if valset:
