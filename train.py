@@ -161,7 +161,8 @@ def train(
                 wandb.log({
                     'train/loss': reduced_loss,
                     'train/log_loss': np.log(reduced_loss),
-                }, step=i)
+                    'epoch': epoch,
+                })
                 print(f"\nStep {i} Train Loss: {reduced_loss}")
 
         # Log average epoch loss
@@ -169,8 +170,9 @@ def train(
             epoch_loss /= len(trainloader)
             wandb.log({
                 'train/loss_epoch': epoch_loss, 
-                'train/log_loss_epoch': np.log(epoch_loss)
-            }, step=epoch)
+                'train/log_loss_epoch': np.log(epoch_loss),
+                'epoch': epoch,
+            })
             print(f"Loss: {epoch_loss}")
 
         # Save checkpoint
@@ -204,8 +206,7 @@ def train(
             ]
 
             wandb.log(
-                {'inference/audio': samples},
-                step=epoch,
+                {'inference/audio': samples, 'epoch': epoch},
             )
         
 
@@ -228,7 +229,7 @@ def train(
                     net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
                 ).item()
 
-                # Note that we do call `reduce_tensor` on the loss here like
+                # Note that we do not call `reduce_tensor` on the loss here like
                 # we do in the train loop, since this validation loop only
                 # runs on one GPU.
 
@@ -238,7 +239,8 @@ def train(
             wandb.log({
                 'val/loss': val_loss,
                 'val/log_loss': np.log(val_loss),
-            }, step=epoch)
+                'epoch': epoch,
+            })
             print(f"Loss: {val_loss}")
 
 
@@ -264,10 +266,8 @@ def train(
             test_loss += loss_value
 
         test_loss /= len(testloader)
-        wandb.log({
-            'test/loss': test_loss,
-            'test/log_loss': np.log(test_loss),
-        }, step=epoch)
+        wandb.run.summary["test/loss"] = test_loss
+        wandb.run.summary["test/log_loss"] = np.log(test_loss)
         print(f"Loss: {test_loss}")
 
 
