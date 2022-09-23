@@ -15,15 +15,18 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         assert unconditional
         trainset = CSVDataset(
             path = dataset_cfg.data_path, 
-            subset = "train", 
+            subset = "train",
+            file_base_path = dataset_cfg.file_base_path,
             sample_length = dataset_cfg.segment_length)
         valset = CSVDataset(
             path = dataset_cfg.data_path, 
             subset = "val", 
+            file_base_path = dataset_cfg.file_base_path,
             sample_length = dataset_cfg.segment_length)
         testset = CSVDataset(
             path = dataset_cfg.data_path, 
             subset = "test", 
+            file_base_path = dataset_cfg.file_base_path,
             sample_length = dataset_cfg.segment_length)
     
     elif dataset_name == "sc09":

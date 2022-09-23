@@ -6,17 +6,7 @@
 # works well. However, this will not produce good results
 
 _name_: variants
-data_path: /home/passch/thesis/data_paths/VariaNTS/tiny_subset0.015-50-25-25
+data_path: /home/passch/thesis/datasplits/VariaNTS_Words/tiny_subset0.015-50-25-25
+file_base_path: /data/julber/Dutch_spoken_datasets/VariaNTS corpus/
 segment_length: 10000
 sampling_rate: 44100
-
-# The following percentiles for the VariaNTS word lengths may help in 
-# choosing a segment length:
-# 0.50    23322.00
-# 0.70    26693.50
-# 0.80    28860.40
-# 0.84    30080.60
-# 0.90    32187.00
-# 0.95    35061.15
-# 0.99    40267.10
-# max     54195.00

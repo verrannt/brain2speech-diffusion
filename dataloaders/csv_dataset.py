@@ -17,7 +17,13 @@ class CSVDataset(Dataset):
     Each returned item is a tuple of the form: waveform, sample_rate
     """
 
-    def __init__(self, path: str, subset: str, sample_length: int = 16000):
+    def __init__(
+        self, 
+        path: str, 
+        subset: str, 
+        file_base_path: str, 
+        sample_length: int = 16000
+    ):
         """
         Read files from .csv file on disk. File must be present in `path` as
         `subset.csv`, e.g. `/data/user/train.csv`.
@@ -26,6 +32,8 @@ class CSVDataset(Dataset):
         subset : One of "train", "val", "test". Which subset of the data to 
             load. The chosen subset must be present as "subset.csv" in the
             `path` given as argument, e.g. "train.csv".
+        file_base_path : If given, this path is prepended to every filename in
+            the loaded .csv file.
         sample_length : Desired length of audio sequence (in sampled points). 
             Any files shorter will be padded, any files longer will be cut to
             this length.
@@ -35,8 +43,15 @@ class CSVDataset(Dataset):
         with open(self._path / f"{subset}.csv", 'r') as f:
             self._files = sorted(f.read().split(','))
 
+        self._file_base_path = Path(file_base_path) if file_base_path else None
+
+        if file_base_path:
+            self._files = [
+                str(self._file_base_path/file_path) for file_path in self._files
+            ]
+
         if not sample_length:
-            raise ValueError("Sample length cannot be Null")
+            raise ValueError("Sample length cannot be None")
         self.sample_length = sample_length
 
     def __getitem__(self, n: int) -> Tuple[Tensor, int, str, str, int]:
