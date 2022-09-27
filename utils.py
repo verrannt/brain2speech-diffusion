@@ -1,8 +1,48 @@
-import os
 import numpy as np
+import os
 import torch
 
 from models import model_identifier
+
+class MaskedMSELoss():
+    """
+    Compute Mean-Squared-Error loss between inputs and targets. Takes a boolean
+    mask to keep masked-out values from contributing to the loss and thus
+    gradient updates.
+
+    The mask is expected to be of same shape as input and target, and be True
+    for those values that are supposed to contribute to the loss, and False
+    for those values that are supposed to be neglected.
+
+    If the mask is None, it will simply compute the standard Mean-Squared-Error.
+    """
+
+    def __init__(self):
+        # Under the hood, we use torch's MSELoss without reduction, such that
+        # we can apply our own reduction based on the mask we're getting
+        self.loss_fn = torch.nn.MSELoss(reduction='none')
+
+    def __call__(self, input, target, mask=None):
+        # Obtain the element-wise loss value using the non-reduced MSELoss
+        loss_val = self.loss_fn(input, target)
+
+        if mask is not None:
+            # Replace all masked-out values with 0. Note that the mask is False for
+            # parts that were added as padding. Hence we have to invert the mask
+            # for use in the `masked_fill` function
+            masked_loss = loss_val.masked_fill(~mask, 0.0)
+
+            # For the final loss value, we sum the values in our masked loss, and
+            # divide by the amount of True values in the mask. This way, we ensure
+            # that only the unmasked values contribute to the final loss.
+            final_loss = masked_loss.sum() / mask.sum()
+
+            return final_loss
+
+        else:
+            # If no mask is given we simply return the standard MSELoss by
+            # taking the mean
+            return loss_val.mean()
 
 def flatten(v):
     """

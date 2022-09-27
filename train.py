@@ -17,7 +17,7 @@ from tqdm import tqdm
 # from dataset_sc import load_Speech_commands
 # from dataset_ljspeech import load_LJSpeech
 from dataloaders import dataloader
-from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
+from utils import MaskedMSELoss, find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
 from distributed_util import init_distributed, apply_gradient_allreduce, reduce_tensor
 from generate import generate
@@ -98,6 +98,8 @@ def train(
 
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
+    loss_fn = MaskedMSELoss()
+
     # Load checkpoint
     if ckpt_epoch == 'max':
         ckpt_epoch = find_max_epoch(checkpoint_directory)
@@ -131,23 +133,30 @@ def train(
         start_epoch = ckpt_epoch + 1
 
     for epoch in range(start_epoch, n_epochs+start_epoch):
-        print("\n" + "-"*100)
-        print(f"EPOCH {epoch}/{start_epoch+n_epochs-1}")
+        print(f"\n{'-'*100}EPOCH {epoch}/{start_epoch+n_epochs-1}")
         epoch_loss = 0.
         print()
         for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
             if model_cfg["unconditional"]:
-                audio, _, _ = data
+                audio, _, _, mask = data
                 audio = audio.cuda()
+                if mask is not None:
+                    mask = mask.cuda()
                 mel_spectrogram = None
             else:
                 mel_spectrogram, audio = data
                 mel_spectrogram = mel_spectrogram.cuda()
                 audio = audio.cuda()
+                mask = None
 
             optimizer.zero_grad()
             loss = compute_loss(
-                net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+                net, 
+                loss_fn, 
+                audio, 
+                diffusion_hyperparams, 
+                mel_spec=mel_spectrogram, 
+                mask=mask,
             )
 
             if num_gpus > 1:
@@ -221,16 +230,24 @@ def train(
             val_loss = 0
             for data in tqdm(valloader, desc='Validating', ncols=100):
                 if model_cfg["unconditional"]:
-                    audio, _, _ = data
+                    audio, _, _, mask = data
                     audio = audio.cuda()
+                    if mask is not None:
+                        mask = mask.cuda()
                     mel_spectrogram = None
                 else:
                     mel_spectrogram, audio = data
                     mel_spectrogram = mel_spectrogram.cuda()
                     audio = audio.cuda()
+                    mask = None
 
                 loss_value = compute_loss(
-                    net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+                    net, 
+                    loss_fn, 
+                    audio, 
+                    diffusion_hyperparams, 
+                    mel_spec=mel_spectrogram, 
+                    mask=mask,
                 ).item()
 
                 # Note that we do not call `reduce_tensor` on the loss here like
@@ -255,16 +272,24 @@ def train(
         test_loss = 0.
         for data in tqdm(testloader, desc='Testing', ncols=100):
             if model_cfg["unconditional"]:
-                audio, _, _ = data
+                audio, _, _, mask = data
                 audio = audio.cuda()
+                if mask is not None:
+                    mask = mask.cuda()
                 mel_spectrogram = None
             else:
                 mel_spectrogram, audio = data
                 mel_spectrogram = mel_spectrogram.cuda()
                 audio = audio.cuda()
+                mask = None
 
             loss_value = compute_loss(
-                net, nn.MSELoss(), audio, diffusion_hyperparams, mel_spec=mel_spectrogram
+                net, 
+                loss_fn, 
+                audio, 
+                diffusion_hyperparams, 
+                mel_spec=mel_spectrogram, 
+                mask=mask,
             ).item()
 
             test_loss += loss_value
@@ -279,7 +304,7 @@ def train(
     if rank == 0:
         wandb.finish()
 
-def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None):
+def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask=None):
     """
     Compute the training loss of epsilon and epsilon_theta
 
@@ -309,8 +334,7 @@ def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None):
     # predict \epsilon according to \epsilon_\theta
     epsilon_theta = net((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)
 
-    return loss_fn(epsilon_theta, z)
-
+    return loss_fn(epsilon_theta, z, mask)
 
 
 @hydra.main(version_base=None, config_path="configs/", config_name="config")

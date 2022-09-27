@@ -41,7 +41,7 @@ def load_speechcommands_item(filepath: str, path: str):
 
     # Load audio
     waveform, sample_rate = torchaudio.load(filepath)
-    return (fix_length(waveform, length=16000), sample_rate, label)
+    return (fix_length(waveform, length=16000), sample_rate, label, None)
 
 class SpeechCommands(Dataset):
     """
