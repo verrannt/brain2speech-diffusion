@@ -4,7 +4,7 @@
 _name_: variants
 data_path: /home/passch/thesis/datasplits/VariaNTS_Words/full_80-10-10
 file_base_path: /data/julber/Dutch_spoken_datasets/VariaNTS corpus/
-segment_length: 30000
+segment_length: 40000
 sampling_rate: 44100
 
 # The following percentiles for the VariaNTS word lengths may help in 
