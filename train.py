@@ -28,6 +28,10 @@ def distributed_train(rank, num_gpus, group_name, cfg):
     # Initialize logger
     if rank == 0 and cfg.wandb is not None:
         wandb_cfg = cfg.pop("wandb")
+        
+        # Use the name of the training run also as the run name in W&B
+        wandb_cfg['name'] = cfg['train']['name']
+        
         wandb.init(
             **wandb_cfg, config=OmegaConf.to_container(cfg, resolve=True)
         )
