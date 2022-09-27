@@ -133,7 +133,7 @@ def train(
         start_epoch = ckpt_epoch + 1
 
     for epoch in range(start_epoch, n_epochs+start_epoch):
-        print(f"\n{'-'*100}EPOCH {epoch}/{start_epoch+n_epochs-1}")
+        print(f"\n{'-'*100}\nEPOCH {epoch}/{start_epoch+n_epochs-1}")
         epoch_loss = 0.
         print()
         for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
