@@ -4,9 +4,10 @@ defaults:
 
 train: # Not used in generate.py
   name: VariaNTSWords-v1 # Name of experiment (prefix of experiment name)
+                         # This will also be used as the W&B run name
   ckpt_epoch: max
-  epochs_per_ckpt: 5
-  iters_per_logging: 50
+  epochs_per_ckpt: 10
+  iters_per_logging: 20
   n_epochs: 1
   learning_rate: 2e-4
   batch_size_per_gpu: 8
@@ -26,5 +27,6 @@ wandb:
   mode: disabled # Pass in 'wandb.mode=online' to turn on wandb logging
   project: diffwave-dutch-unconditional
   entity: pascalschroeder
-  id: null # Set to string to resume logging from run
+  id: null # Set to string to resume logging from run. 
+           # Can be found in the W&B run URL (not the run name)
   job_type: training
