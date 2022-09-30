@@ -8,6 +8,7 @@ import torchaudio
 from torch.utils.data import Dataset
 from torch import Tensor
 
+import random
 from typing import Tuple
 
 
@@ -22,33 +23,45 @@ class CSVDataset(Dataset):
         path: str, 
         subset: str, 
         file_base_path: str, 
-        sample_length: int = 16000
+        sample_length: int = 16000,
+        shuffle: bool = True,
+        seed: int = None,
     ):
         """
         Read files from .csv file on disk. File must be present in `path` as
         `subset.csv`, e.g. `/data/user/train.csv`.
 
-        path : Path to the directory on disk where the .csv files are stored
+        path : Path to the directory on disk where the .csv file is stored
         subset : One of "train", "val", "test". Which subset of the data to 
-            load. The chosen subset must be present as "subset.csv" in the
+            load. The chosen subset must be present as "<subset>.csv" in the
             `path` given as argument, e.g. "train.csv".
         file_base_path : If given, this path is prepended to every filename in
             the loaded .csv file.
         sample_length : Desired length of audio sequence (in sampled points). 
             Any files shorter will be padded, any files longer will be cut to
             this length.
+        shuffle : Whether to shuffle the files read from the .csv file
+        seed : Seed for the random number generator used for shuffling
         """
         self._path = Path(path)
 
-        with open(self._path / f"{subset}.csv", 'r') as f:
-            self._files = sorted(f.read().split(','))
+        if seed:
+            random.seed(seed)
 
-        self._file_base_path = Path(file_base_path) if file_base_path else None
+        with open(self._path / f"{subset}.csv", 'r') as f:
+            self._files = f.read().split(',')
+            if shuffle:
+                random.shuffle(self._files) # inplace operation
+            else:
+                self._files = sorted(self._files)
 
         if file_base_path:
+            self._file_base_path = Path(file_base_path)
             self._files = [
                 str(self._file_base_path/file_path) for file_path in self._files
             ]
+        else:
+            self._file_base_path = None
 
         if not sample_length:
             raise ValueError("Sample length cannot be None")
