@@ -191,9 +191,22 @@ def train(
         # Save checkpoint
         if epoch % epochs_per_ckpt == 0 and rank == 0:
             checkpoint_name = f'{epoch}.pkl'
-            torch.save({'model_state_dict': net.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict()},
-                        os.path.join(checkpoint_directory, checkpoint_name))
+            checkpoint_path_full = os.path.join(checkpoint_directory, checkpoint_name)
+
+            # Save to local dir
+            torch.save(
+                {
+                    'model_state_dict': net.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict()
+                },
+                checkpoint_path_full,
+            )
+            
+            # Save to W&B
+            artifact = wandb.Artifact(wandb.run.name, type="model")
+            artifact.add_file(checkpoint_path_full, name=f"epoch_{epoch}")
+            wandb.log_artifact(artifact)
+            
             print('Created model checkpoint')
 
             # Generate samples
