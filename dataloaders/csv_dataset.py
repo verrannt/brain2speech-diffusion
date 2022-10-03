@@ -26,6 +26,7 @@ class CSVDataset(Dataset):
         sample_length: int = 16000,
         shuffle: bool = True,
         seed: int = None,
+        normalize: bool = False,
     ):
         """
         Read files from .csv file on disk. File must be present in `path` as
@@ -42,6 +43,7 @@ class CSVDataset(Dataset):
             this length.
         shuffle : Whether to shuffle the files read from the .csv file
         seed : Seed for the random number generator used for shuffling
+        normalize : Whether to normalize the data
         """
         self._path = Path(path)
 
@@ -66,6 +68,8 @@ class CSVDataset(Dataset):
         if not sample_length:
             raise ValueError("Sample length cannot be None")
         self.sample_length = sample_length
+
+        self.should_normalize = normalize
 
     def __getitem__(self, n: int) -> Tuple[Tensor, int, str, Tensor]:
         file_path = self._files[n]
@@ -124,8 +128,22 @@ class CSVDataset(Dataset):
             mask = torch.ones((1,self.sample_length), dtype=torch.bool)
             return tensor, mask
 
+    def normalize(self, tensor: Tensor) -> Tensor:
+        """
+        Maybe normalize an input tensor to mean 0 and std 1. Depends on whether
+        `self.should_normalize` is `True` or `False`.
+        """
+
+        if self.should_normalize:
+            return (tensor - torch.mean(tensor)) / torch.std(tensor)
+        else:
+            return tensor
+
     def load_audio(self, file_path: str) -> Tuple[Tensor, int, str, Tensor]:
         waveform, sample_rate = torchaudio.load(file_path)
+
+        # Maybe normalize
+        waveform = self.normalize(waveform)
 
         # Norm waveform to designated length and get padding mask
         waveform, mask = self.fix_length(waveform)
