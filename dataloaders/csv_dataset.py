@@ -26,7 +26,7 @@ class CSVDataset(Dataset):
         sample_length: int = 16000,
         shuffle: bool = True,
         seed: int = None,
-        normalize: bool = False,
+        min_max_norm: bool = False,
     ):
         """
         Read files from .csv file on disk. File must be present in `path` as
@@ -43,7 +43,7 @@ class CSVDataset(Dataset):
             this length.
         shuffle : Whether to shuffle the files read from the .csv file
         seed : Seed for the random number generator used for shuffling
-        normalize : Whether to normalize the data
+        min_max_norm : Whether to scale the data to the range [-1, 1]
         """
         self._path = Path(path)
 
@@ -69,7 +69,7 @@ class CSVDataset(Dataset):
             raise ValueError("Sample length cannot be None")
         self.sample_length = sample_length
 
-        self.should_normalize = normalize
+        self.should_norm = min_max_norm
 
     def __getitem__(self, n: int) -> Tuple[Tensor, int, str, Tensor]:
         file_path = self._files[n]
@@ -128,22 +128,34 @@ class CSVDataset(Dataset):
             mask = torch.ones((1,self.sample_length), dtype=torch.bool)
             return tensor, mask
 
-    def normalize(self, tensor: Tensor) -> Tensor:
+    def standardize(self, tensor: Tensor) -> Tensor:
         """
-        Maybe normalize an input tensor to mean 0 and std 1. Depends on whether
-        `self.should_normalize` is `True` or `False`.
+        Standardize an input tensor to mean 0 and standard deviation 1.
         """
+        return (tensor - torch.mean(tensor)) / torch.std(tensor)
 
-        if self.should_normalize:
-            return (tensor - torch.mean(tensor)) / torch.std(tensor)
-        else:
-            return tensor
+
+    def min_max_norm(self, tensor: Tensor) -> Tensor:
+        """
+        Min-max scale input tensor from `Int16` range to `[-1, 1]`.
+
+        The tensor can theoretically have any dtype, but min and max values
+        are assumed to be the min and max values of `Int16`, which are
+        `-32768` and `32767`.
+
+        The general formula for range `[a, b]` is:
+        ```
+        a + ( (x - min) * (b - a) ) / (max - min)
+        ```
+        """
+        return -1 + (tensor + 32768) * 2 / 65535
 
     def load_audio(self, file_path: str) -> Tuple[Tensor, int, str, Tensor]:
         waveform, sample_rate = torchaudio.load(file_path)
 
-        # Maybe normalize
-        waveform = self.normalize(waveform)
+        # Maybe perform min-max normalization
+        if self.should_norm:
+            waveform = self.min_max_norm(waveform)
 
         # Norm waveform to designated length and get padding mask
         waveform, mask = self.fix_length(waveform)

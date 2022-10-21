@@ -14,20 +14,23 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
     if dataset_name == "variants":
         assert unconditional
         trainset = CSVDataset(
-            path = dataset_cfg.data_path, 
+            path = dataset_cfg.data_path,
             subset = "train",
             file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length)
+            sample_length = dataset_cfg.segment_length,
+            min_max_norm = dataset_cfg.get('min_max_norm', False))
         valset = CSVDataset(
-            path = dataset_cfg.data_path, 
-            subset = "val", 
+            path = dataset_cfg.data_path,
+            subset = "val",
             file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length)
+            sample_length = dataset_cfg.segment_length,
+            min_max_norm = dataset_cfg.get('min_max_norm', False))
         testset = CSVDataset(
-            path = dataset_cfg.data_path, 
-            subset = "test", 
+            path = dataset_cfg.data_path,
+            subset = "test",
             file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length)
+            sample_length = dataset_cfg.segment_length,
+            min_max_norm = dataset_cfg.get('min_max_norm', False))
     
     elif dataset_name == "sc09":
         assert unconditional
