@@ -175,7 +175,7 @@ def train(
                     'train/loss': reduced_loss,
                     'train/log_loss': np.log(reduced_loss),
                     'epoch': epoch,
-                })
+                }, commit=False) # commit only at end of epoch
                 print(f"\nStep {i} Train Loss: {reduced_loss}")
 
         # Log average epoch loss
