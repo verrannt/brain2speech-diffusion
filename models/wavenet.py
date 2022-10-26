@@ -17,7 +17,10 @@ class Conv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1):
         super(Conv, self).__init__()
         self.padding = dilation * (kernel_size - 1) // 2
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, dilation=dilation, padding=self.padding)
+        self.conv = nn.Conv1d(
+            in_channels, out_channels, 
+            kernel_size, dilation=dilation, padding=self.padding
+        )
         self.conv = nn.utils.weight_norm(self.conv)
         nn.init.kaiming_normal_(self.conv.weight)
 
@@ -44,11 +47,11 @@ class ZeroConv1d(nn.Module):
 # contains one noncausal dilated conv
 class Residual_block(nn.Module):
     def __init__(
-            self, res_channels, skip_channels, dilation=1,
-            diffusion_step_embed_dim_out=512,
-            unconditional=True,
-            mel_upsample=[16,16],
-        ):
+        self, res_channels, skip_channels, dilation=1,
+        diffusion_step_embed_dim_out=512,
+        unconditional=True,
+        mel_upsample=[16,16],
+    ):
         super(Residual_block, self).__init__()
         self.res_channels = res_channels
 
@@ -56,14 +59,20 @@ class Residual_block(nn.Module):
         self.fc_t = nn.Linear(diffusion_step_embed_dim_out, self.res_channels)
 
         # dilated conv layer
-        self.dilated_conv_layer = Conv(self.res_channels, 2 * self.res_channels, kernel_size=3, dilation=dilation)
+        self.dilated_conv_layer = Conv(
+            self.res_channels, 2 * self.res_channels, 
+            kernel_size=3, 
+            dilation=dilation
+        )
 
         self.unconditional = unconditional
         if not self.unconditional:
             # add mel spectrogram upsampler and conditioner conv1x1 layer
             self.upsample_conv2d = torch.nn.ModuleList()
             for s in mel_upsample:
-                conv_trans2d = torch.nn.ConvTranspose2d(1, 1, (3, 2 * s), padding=(1, s // 2), stride=(1, s))
+                conv_trans2d = torch.nn.ConvTranspose2d(
+                    1, 1, (3, 2 * s), padding=(1, s // 2), stride=(1, s)
+                )
                 conv_trans2d = torch.nn.utils.weight_norm(conv_trans2d)
                 torch.nn.init.kaiming_normal_(conv_trans2d.weight)
                 self.upsample_conv2d.append(conv_trans2d)
@@ -122,13 +131,14 @@ class Residual_block(nn.Module):
 
 
 class Residual_group(nn.Module):
-    def __init__(self, res_channels, skip_channels, num_res_layers=30, dilation_cycle=10,
-                 diffusion_step_embed_dim_in=128,
-                 diffusion_step_embed_dim_mid=512,
-                 diffusion_step_embed_dim_out=512,
-                 unconditional=False,
-                 mel_upsample=[16,16],
-                 ):
+    def __init__(
+        self, res_channels, skip_channels, num_res_layers=30, dilation_cycle=10,
+        diffusion_step_embed_dim_in=128,
+        diffusion_step_embed_dim_mid=512,
+        diffusion_step_embed_dim_out=512,
+        unconditional=False,
+        mel_upsample=[16,16],
+    ):
         super(Residual_group, self).__init__()
         self.num_res_layers = num_res_layers
         self.diffusion_step_embed_dim_in = diffusion_step_embed_dim_in
@@ -138,19 +148,23 @@ class Residual_group(nn.Module):
         self.fc_t2 = nn.Linear(diffusion_step_embed_dim_mid, diffusion_step_embed_dim_out)
 
         # stack all residual blocks with dilations 1, 2, ... , 512, ... , 1, 2, ..., 512
-        self.residual_blocks = nn.ModuleList()
-        for n in range(self.num_res_layers):
-            self.residual_blocks.append(Residual_block(res_channels, skip_channels,
-                                                       dilation=2 ** (n % dilation_cycle),
-                                                       diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                                                       unconditional=unconditional,
-                                                       mel_upsample=mel_upsample))
+        self.residual_blocks = nn.ModuleList([
+            Residual_block(
+                res_channels, skip_channels,
+                dilation=2 ** (n % dilation_cycle),
+                diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
+                unconditional=unconditional,
+                mel_upsample=mel_upsample
+            ) for n in range(self.num_res_layers)
+        ])
 
     def forward(self, input_data, mel_spec=None):
         x, diffusion_steps = input_data
 
         # embed diffusion step t
-        diffusion_step_embed = calc_diffusion_step_embedding(diffusion_steps, self.diffusion_step_embed_dim_in)
+        diffusion_step_embed = calc_diffusion_step_embedding(
+            diffusion_steps, self.diffusion_step_embed_dim_in
+        )
         diffusion_step_embed = swish(self.fc_t1(diffusion_step_embed))
         diffusion_step_embed = swish(self.fc_t2(diffusion_step_embed))
 
@@ -158,22 +172,28 @@ class Residual_group(nn.Module):
         h = x
         skip = 0
         for n in range(self.num_res_layers):
-            h, skip_n = self.residual_blocks[n]((h, diffusion_step_embed), mel_spec=mel_spec)  # use the output from last residual layer
-            skip = skip + skip_n  # accumulate all skip outputs
-            # skip += skip_n  # accumulate all skip outputs
+            # use the output from last residual layer
+            h, skip_n = self.residual_blocks[n](
+                (h, diffusion_step_embed), mel_spec=mel_spec
+            )
+            # accumulate all skip outputs
+            skip = skip + skip_n
 
-        return skip * math.sqrt(1.0 / self.num_res_layers)  # normalize for training stability
+        # normalize for training stability
+        return skip * math.sqrt(1.0 / self.num_res_layers)
 
 
 class WaveNet(nn.Module):
-    def __init__(self, in_channels=1, res_channels=256, skip_channels=128, out_channels=1,
-                 num_res_layers=30, dilation_cycle=10,
-                 diffusion_step_embed_dim_in=128,
-                 diffusion_step_embed_dim_mid=512,
-                 diffusion_step_embed_dim_out=512,
-                 unconditional=False,
-                 mel_upsample=[16,16],
-                 **kwargs):
+    def __init__(
+        self, in_channels=1, res_channels=256, skip_channels=128, out_channels=1,
+        num_res_layers=30, dilation_cycle=10,
+        diffusion_step_embed_dim_in=128,
+        diffusion_step_embed_dim_mid=512,
+        diffusion_step_embed_dim_out=512,
+        unconditional=False,
+        mel_upsample=[16,16],
+        **kwargs
+    ):
         super().__init__()
         self.res_channels = res_channels
         self.skip_channels = skip_channels
@@ -181,23 +201,30 @@ class WaveNet(nn.Module):
         self.unconditional = unconditional
 
         # initial conv1x1 with relu
-        self.init_conv = nn.Sequential(Conv(in_channels, res_channels, kernel_size=1), nn.ReLU())
+        self.init_conv = nn.Sequential(
+            Conv(in_channels, res_channels, kernel_size=1),
+            nn.ReLU()
+        )
 
         # all residual layers
-        self.residual_layer = Residual_group(res_channels=res_channels,
-                                             skip_channels=skip_channels,
-                                             num_res_layers=num_res_layers,
-                                             dilation_cycle=dilation_cycle,
-                                             diffusion_step_embed_dim_in=diffusion_step_embed_dim_in,
-                                             diffusion_step_embed_dim_mid=diffusion_step_embed_dim_mid,
-                                             diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                                             mel_upsample=mel_upsample,
-                                             unconditional=unconditional)
+        self.residual_layer = Residual_group(
+            res_channels=res_channels,
+            skip_channels=skip_channels,
+            num_res_layers=num_res_layers,
+            dilation_cycle=dilation_cycle,
+            diffusion_step_embed_dim_in=diffusion_step_embed_dim_in,
+            diffusion_step_embed_dim_mid=diffusion_step_embed_dim_mid,
+            diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
+            mel_upsample=mel_upsample,
+            unconditional=unconditional
+        )
 
         # final conv1x1 -> relu -> zeroconv1x1
-        self.final_conv = nn.Sequential(Conv(skip_channels, skip_channels, kernel_size=1),
-                                        nn.ReLU(),
-                                        ZeroConv1d(skip_channels, out_channels))
+        self.final_conv = nn.Sequential(
+            Conv(skip_channels, skip_channels, kernel_size=1),
+            nn.ReLU(),
+            ZeroConv1d(skip_channels, out_channels)
+        )
 
     def forward(self, input_data, mel_spec=None):
         audio, diffusion_steps = input_data
@@ -210,11 +237,9 @@ class WaveNet(nn.Module):
         return x
 
     def __repr__(self):
-        return f"wavenet_h{self.res_channels}_d{self.num_res_layers}_{'uncond' if self.unconditional else 'cond'}"
+        return f"wavenet_h{self.res_channels}_d{self.num_res_layers}_"\
+               f"{'uncond' if self.unconditional else 'cond'}"
 
     @classmethod
     def name(cls, model_cfg):
-        return "wnet_h{}_d{}".format(
-            model_cfg["res_channels"],
-            model_cfg["num_res_layers"],
-        )
+        return f"wnet_h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
