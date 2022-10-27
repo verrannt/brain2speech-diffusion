@@ -9,16 +9,15 @@ from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
 from scipy.io.wavfile import write as wavwrite
-
 from models import construct_model
 from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
-def sampling(net, size, diffusion_hyperparams, condition=None):
+def sampling(model, size, diffusion_hyperparams, condition=None):
     """
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t)
 
     Parameters:
-    net (torch network):            the model
+    model (torch network):            the model
     size (tuple):                   size of tensor to be generated,
                                     usually is (number of audios to generate, channels=1, length of audio)
     diffusion_hyperparams (dict):   dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams
@@ -42,7 +41,7 @@ def sampling(net, size, diffusion_hyperparams, condition=None):
             diffusion_steps = (t * torch.ones((size[0], 1))).cuda()
 
             # predict \epsilon according to \epsilon_\theta
-            epsilon_theta = net((x, diffusion_steps,), mel_spec=condition)  
+            epsilon_theta = model((x, diffusion_steps,), mel_spec=condition)  
             
             # update x_{t-1} to \mu_\theta(x_t)
             x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  
@@ -87,9 +86,9 @@ def generate(
     diffusion_hyperparams = calc_diffusion_hyperparams(**diffusion_cfg, fast=True)  # dictionary of all diffusion hyperparameters
 
     # predefine model
-    net = construct_model(model_cfg).cuda()
-    # print_size(net)
-    net.eval()
+    model = construct_model(model_cfg).cuda()
+    # print_size(model)
+    model.eval()
 
     # load checkpoint
     print('Loading checkpoint at epoch', ckpt_epoch)
@@ -101,7 +100,7 @@ def generate(
     try:
         model_path = os.path.join(ckpt_path, f'{ckpt_epoch}.pkl')
         checkpoint = torch.load(model_path, map_location='cpu')
-        net.load_state_dict(checkpoint['model_state_dict'])
+        model.load_state_dict(checkpoint['model_state_dict'])
         # print(f'Successfully loaded model at epoch {ckpt_epoch}')
     except:
         raise Exception(f'No valid model found for epoch {ckpt_epoch} at path {ckpt_path}')
@@ -155,7 +154,7 @@ def generate(
 
     for _ in range(n_samples // batch_size):
         _audio = sampling(
-            net,
+            model,
             (batch_size,1,audio_length),
             diffusion_hyperparams,
             condition=ground_truth_mel_spectrogram,
