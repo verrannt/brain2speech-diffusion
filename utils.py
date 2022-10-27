@@ -2,8 +2,6 @@ import numpy as np
 import os
 import torch
 
-from models import model_identifier
-
 class MaskedMSELoss():
     """
     Compute Mean-Squared-Error loss between inputs and targets. Takes a boolean
@@ -109,7 +107,7 @@ def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_director
     # ckpt_path = output_directory # train_cfg['output_directory']
 
     # generate experiment (local) path
-    model_name = model_identifier(model_cfg)
+    model_name = f"h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
     diffusion_name = f"_T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
     if model_cfg["unconditional"]:
         data_name = ""

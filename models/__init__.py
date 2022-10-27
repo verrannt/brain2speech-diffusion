@@ -1,28 +1,11 @@
-# from .sashimi import Sashimi
-from .wavenet import WaveNet
+from omegaconf import DictConfig
 
-# !!!
-# WARNING SaShiMi is currently commented out here because importing it threw
-# annoying errors that I will ignore as long as I work with WaveNet only
-# !!!
+from .diffwave import DiffWave
 
-def construct_model(model_cfg):
-    name = model_cfg.pop("_name_")
-    model_cls = {
-        "wavenet": WaveNet,
-        # "sashimi": Sashimi,
-    }[name]
-    model = model_cls(**model_cfg)
-    model_cfg["_name_"] = name # restore
-    return model
-    # if model_cfg.backbone == "wavenet":
-    #     return WaveNet(**model_cfg)
-    # elif model_cfg.backbone == ["sashimi"]:
-    #     return Sashimi(**model_cfg)
-
-def model_identifier(model_cfg):
-    model_cls = {
-        "wavenet": WaveNet,
-        # "sashimi": Sashimi,
-    }[model_cfg._name_]
-    return model_cls.name(model_cfg)
+def construct_model(model_cfg: DictConfig):
+    """
+    Construct a model given a configuration dict. 
+    
+    NOTE: Currently always returns DiffWave, until extended models are supported.
+    """
+    return DiffWave(**model_cfg)

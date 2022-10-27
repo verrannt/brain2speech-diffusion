@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /model: wavenet_small
+  - /model: diffwave_small
   - /dataset: variants_tiny
 
 diffusion:

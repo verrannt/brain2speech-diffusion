@@ -96,7 +96,7 @@ def train(
 
     local_path, checkpoint_directory = local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, 'checkpoint')
 
-    # Map diffusion hyperparameters to gpu
+    # Map diffusion hyperparameters to GPU
     # Gives dictionary of all diffusion hyperparameters
     diffusion_hyperparams = calc_diffusion_hyperparams(
         **diffusion_cfg, 

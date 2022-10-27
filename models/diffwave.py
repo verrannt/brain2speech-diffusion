@@ -183,7 +183,7 @@ class Residual_group(nn.Module):
         return skip * math.sqrt(1.0 / self.num_res_layers)
 
 
-class WaveNet(nn.Module):
+class DiffWave(nn.Module):
     def __init__(
         self, in_channels=1, res_channels=256, skip_channels=128, out_channels=1,
         num_res_layers=30, dilation_cycle=10,
@@ -237,9 +237,5 @@ class WaveNet(nn.Module):
         return x
 
     def __repr__(self):
-        return f"wavenet_h{self.res_channels}_d{self.num_res_layers}_"\
+        return f"DiffWave_h{self.res_channels}_d{self.num_res_layers}_"\
                f"{'uncond' if self.unconditional else 'cond'}"
-
-    @classmethod
-    def name(cls, model_cfg):
-        return f"wnet_h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
