@@ -1,30 +1,41 @@
-import os
-import time
-# import warnings
-# warnings.filterwarnings("ignore")
 from functools import partial
 import multiprocessing as mp
+import os
+import time
+from typing import Union
 
-import numpy as np
-import torch
-import torch.nn as nn
-# from torch.utils.tensorboard import SummaryWriter
 import hydra
-import wandb
+import numpy as np
 from omegaconf import DictConfig, OmegaConf
+import torch
 from tqdm import tqdm
+import wandb
 
-# from dataset_sc import load_Speech_commands
-# from dataset_ljspeech import load_LJSpeech
+from generate import generate
 from dataloaders import dataloader
+from distributed_util import init_distributed, apply_gradient_allreduce, reduce_tensor
+from models import construct_model
 from utils import MaskedMSELoss, find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
-from distributed_util import init_distributed, apply_gradient_allreduce, reduce_tensor
-from generate import generate
 
-from models import construct_model
+def distributed_train(
+    rank: int, 
+    num_gpus: int, 
+    group_name: str, 
+    cfg: DictConfig
+) -> None:
+    """
+    Train DiffWave in the distributed setting, by appropriately initializing distributed training and calling
+    the train function, given configuration settings.
 
-def distributed_train(rank, num_gpus, group_name, cfg):
+    Parameters
+    ---
+    rank: Rank of the GPU this function instance is called on
+    num_gpus: Total number of GPUs available in this run
+    group_name: Identifier of the process group
+    cfg: configuration options defined in the Hydra config file
+    """
+
     # Initialize logger
     if rank == 0 and cfg.wandb is not None:
         wandb_cfg = cfg.pop("wandb")
@@ -42,7 +53,8 @@ def distributed_train(rank, num_gpus, group_name, cfg):
         init_distributed(rank, num_gpus, group_name, **dist_cfg)
 
     train(
-        rank=rank, num_gpus=num_gpus,
+        rank=rank, 
+        num_gpus=num_gpus,
         diffusion_cfg=cfg.diffusion,
         model_cfg=cfg.model,
         dataset_cfg=cfg.dataset,
@@ -51,37 +63,47 @@ def distributed_train(rank, num_gpus, group_name, cfg):
     )
 
 def train(
-    rank, num_gpus,
-    diffusion_cfg, model_cfg, dataset_cfg, generate_cfg, # dist_cfg, wandb_cfg, # train_cfg,
-    ckpt_epoch, n_epochs, epochs_per_ckpt, iters_per_logging,
-    learning_rate, batch_size_per_gpu,
-    # n_samples,
-    name=None,
-    # mel_path=None,
-):
+    rank: int,
+    num_gpus: int,
+    diffusion_cfg: DictConfig,
+    model_cfg: DictConfig,
+    dataset_cfg: DictConfig,
+    generate_cfg: DictConfig,
+    ckpt_epoch: Union[int, str],
+    n_epochs: int,
+    epochs_per_ckpt: int,
+    iters_per_logging: int,
+    learning_rate: float,
+    batch_size_per_gpu: int,
+    name: Union[str, None],
+) -> None:
     """
-    Parameters: TODO Change params to epoch level 
-    ckpt_iter (int or 'max'):       the pretrained checkpoint to be loaded;
-                                    automitically selects the maximum iteration if 'max' is selected
-    n_iters (int):                  number of iterations to train, default is 1M
-    iters_per_ckpt (int):           number of iterations to save checkpoint,
-                                    default is 10k, for models with residual_channel=64 this number can be larger
-    iters_per_logging (int):        number of iterations to save training log and compute validation loss, default is 100
-    learning_rate (float):          learning rate
-    batch_size_per_gpu (int):       batchsize per gpu, default is 2 so total batchsize is 16 with 8 gpus
-    n_samples (int):                audio samples to generate and log per checkpoint
-    name (str):                     prefix in front of experiment name
-    mel_path (str):                 for vocoding, path to mel spectrograms (TODO generate these on the fly)
+    Train DiffWave on a single GPU of given rank, with given configuration settings.
+
+    Parameters
+    ---
+    rank:                   rank (ID) of the GPU this function is executed on
+    num_gpus:               total number of GPUs available in this run
+    ckpt_epoch:             the pretrained checkpoint to be loaded;
+                            automatically selects the maximum iteration if 'max' is selected
+    n_epochs:               number of epochs to train
+    epochs_per_ckpt:        how often to save a model checkpoint
+    iters_per_logging:      number of iterations to save training log and compute validation loss
+    learning_rate:          learning rate
+    batch_size_per_gpu:     batchsize per gpu, default is 2 so total batchsize is 16 with 8 gpus
+    name:                   prefix in front of experiment name
     """
 
     local_path, checkpoint_directory = local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, 'checkpoint')
 
     # Map diffusion hyperparameters to gpu
+    # Gives dictionary of all diffusion hyperparameters
     diffusion_hyperparams = calc_diffusion_hyperparams(
         **diffusion_cfg, 
         fast=False
-    )  # dictionary of all diffusion hyperparameters
+    )
 
+    # Initialize data loader. Val and test loaders might be None if not specified
     trainloader, valloader, testloader = dataloader(
         dataset_cfg, 
         batch_size = batch_size_per_gpu, 
@@ -90,13 +112,13 @@ def train(
     )
     print('Data loaded')
 
-    net = construct_model(model_cfg).cuda()
-    print_size(net, verbose=False)
+    model = construct_model(model_cfg).cuda()
+    print_size(model, verbose=False)
 
     if num_gpus > 1:
-        net = apply_gradient_allreduce(net)
+        model = apply_gradient_allreduce(model)
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     loss_fn = MaskedMSELoss()
 
@@ -110,7 +132,7 @@ def train(
             checkpoint = torch.load(model_path, map_location='cpu')
 
             # Feed model dict and optimizer state
-            net.load_state_dict(checkpoint['model_state_dict'])
+            model.load_state_dict(checkpoint['model_state_dict'])
             if 'optimizer_state_dict' in checkpoint:
                 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 # HACK to reset learning rate
@@ -151,7 +173,7 @@ def train(
 
             optimizer.zero_grad()
             loss = compute_loss(
-                net, 
+                model, 
                 loss_fn, 
                 audio, 
                 diffusion_hyperparams, 
@@ -196,7 +218,7 @@ def train(
             # Save to local dir
             torch.save(
                 {
-                    'model_state_dict': net.state_dict(),
+                    'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict()
                 },
                 checkpoint_path_full,
@@ -255,7 +277,7 @@ def train(
                     mask = None
 
                 loss_value = compute_loss(
-                    net, 
+                    model, 
                     loss_fn, 
                     audio, 
                     diffusion_hyperparams, 
@@ -297,7 +319,7 @@ def train(
                 mask = None
 
             loss_value = compute_loss(
-                net, 
+                model, 
                 loss_fn, 
                 audio, 
                 diffusion_hyperparams, 
@@ -317,19 +339,21 @@ def train(
     if rank == 0:
         wandb.finish()
 
-def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask=None):
+def compute_loss(model, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask=None):
     """
     Compute the training loss of epsilon and epsilon_theta
 
-    Parameters:
-    net (torch network):            the wavenet model
-    loss_fn (torch loss function):  the loss function, default is nn.MSELoss()
+    Parameters
+    ---
+    model (torch network):          the wavenet model
+    loss_fn (torch loss function):  the loss function
     audio (torch.tensor):           training data, shape=(batchsize, 1, length of audio)
     diffusion_hyperparams (dict):   dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams
                                     note, the tensors need to be cuda tensors
 
-    Returns:
-    training loss
+    Returns
+    ---
+    Output of the loss function
     """
 
     _dh = diffusion_hyperparams
@@ -344,8 +368,8 @@ def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask
     # compute x_t from q(x_t|x_0)
     transformed_X = torch.sqrt(Alpha_bar[diffusion_steps]) * audio + torch.sqrt(1-Alpha_bar[diffusion_steps]) * z
     
-    # predict \epsilon according to \epsilon_\theta
-    epsilon_theta = net((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)
+    # predict epsilon according to epsilon_theta
+    epsilon_theta = model((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)
 
     return loss_fn(epsilon_theta, z, mask)
 
@@ -353,7 +377,8 @@ def compute_loss(net, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask
 @hydra.main(version_base=None, config_path="configs/", config_name="config")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    OmegaConf.set_struct(cfg, False)  # Allow writing keys
+    # Allow writing keys
+    OmegaConf.set_struct(cfg, False)
 
     if not os.path.isdir("exp/"):
         os.makedirs("exp/")
