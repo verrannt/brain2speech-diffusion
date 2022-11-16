@@ -8,7 +8,7 @@ import torchaudio
 from torch.utils.data import Dataset
 from torch import Tensor
 
-import random
+import numpy as np
 from typing import Tuple
 
 
@@ -46,13 +46,12 @@ class CSVDataset(Dataset):
         """
         self._path = Path(path)
 
-        if seed:
-            random.seed(seed)
+        rng = np.random.default_rng(seed)
 
         with open(self._path / f"{subset}.csv", 'r') as f:
             self._files = f.read().split(',')
             if shuffle:
-                random.shuffle(self._files) # inplace operation
+                rng.shuffle(self._files) # inplace operation
             else:
                 self._files = sorted(self._files)
 
