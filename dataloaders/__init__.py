@@ -3,16 +3,19 @@ import torch
 from torch.utils.data.distributed import DistributedSampler
 
 from .csv_dataset import CSVDataset
-from .sc import SpeechCommands
-from .mel2samp import Mel2Samp
+from .eeg_dataset import EEGDataset
+
+
+SHUFFLING_SEED = 1144
+
 
 def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
-    # TODO would be nice if unconditional was decoupled from dataset
-
     dataset_name = dataset_cfg.pop("_name_")
 
+    valset, testset = None, None
+
     if dataset_name == "variants":
-        assert unconditional
+        # assert unconditional TODO Undo commenting out
         trainset = CSVDataset(
             path = dataset_cfg.data_path,
             subset = "train",
@@ -31,17 +34,24 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
             file_base_path = dataset_cfg.file_base_path,
             sample_length = dataset_cfg.segment_length,
             min_max_norm = dataset_cfg.get('min_max_norm', False))
-    
-    elif dataset_name == "sc09":
-        assert unconditional
-        trainset = SpeechCommands(dataset_cfg.data_path)
-    
-    elif dataset_name == "ljspeech":
-        assert not unconditional
-        trainset = Mel2Samp(**dataset_cfg)
-    
-    dataset_cfg["_name_"] = dataset_name # Restore
 
+    elif dataset_name == "brain_conditional":
+        assert not unconditional # TODO do we really need this, or would be fine without?
+        trainset = EEGDataset(
+            path = dataset_cfg.data_path,
+            subset = "train",
+            sample_length = dataset_cfg.segment_length,
+            sample_rate_audio = dataset_cfg.sample_rate_audio,
+            sample_rate_eeg = dataset_cfg.sample_rate_eeg,
+            seed = SHUFFLING_SEED)
+        valset = EEGDataset(
+            path = dataset_cfg.data_path,
+            subset = "val",
+            sample_length = dataset_cfg.segment_length,
+            sample_rate_audio = dataset_cfg.sample_rate_audio,
+            sample_rate_eeg = dataset_cfg.sample_rate_eeg,
+            seed = SHUFFLING_SEED)
+    
     # Use distributed sampling for the train set. Note that we do not use
     # it for validation and testing set, since we have currently no way of
     # collecting the results from all GPUs, and will therefore only run them
