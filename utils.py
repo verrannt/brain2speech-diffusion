@@ -75,7 +75,7 @@ def find_max_epoch(path):
     for f in files:
         if len(f) <= 4:
             continue
-        if f[-4:]  == '.pkl':
+        if f.endswith('.pkl'):
             try:
                 epoch = max(epoch, int(f[:-4]))
             except:
@@ -103,17 +103,14 @@ def print_size(net, verbose=False):
 
 
 def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_directory):
-    # tensorboard_directory = train_cfg['tensorboard_directory']
-    # ckpt_path = output_directory # train_cfg['output_directory']
-
-    # generate experiment (local) path
+    # Generate experiment (local) path
     model_name = f"h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
     diffusion_name = f"_T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
     if model_cfg["unconditional"]:
-        data_name = ""
+        data_name = "_uncond"
     else:
-        data_name = f"_L{dataset_cfg['segment_length']}_hop{dataset_cfg['hop_length']}"
-    local_path = model_name + diffusion_name + data_name + f"_{'uncond' if model_cfg['unconditional'] else 'cond'}"
+        data_name = f"_L{dataset_cfg['segment_length']}_cond"
+    local_path = model_name + diffusion_name + data_name
 
     if not (name is None or name == ""):
         local_path = name + "_" + local_path
@@ -124,7 +121,6 @@ def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_director
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
         
-    # print("output directory", output_directory, flush=True)
     return local_path, output_directory
 
 
