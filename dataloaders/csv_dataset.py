@@ -15,7 +15,6 @@ from typing import Tuple
 class CSVDataset(Dataset):
     """
     Create a Dataset from a .csv file list of audio files.
-    Each returned item is a tuple of the form: waveform, sample_rate
     """
 
     def __init__(
@@ -134,7 +133,6 @@ class CSVDataset(Dataset):
         """
         return (tensor - torch.mean(tensor)) / torch.std(tensor)
 
-
     def min_max_norm(self, tensor: Tensor) -> Tensor:
         """
         Min-max scale input tensor from `Int16` range to `[-1, 1]`.
@@ -160,6 +158,6 @@ class CSVDataset(Dataset):
         # Norm waveform to designated length and get padding mask
         waveform, mask = self.fix_length(waveform)
 
-        # NOTE We return an empty label here as the third element to 
-        # ensure compatibility across the APIs of all dataset loaders
+        # The third element is for conditional input, where we return an empty 
+        # string, since this is an unconditional dataset
         return (waveform, sample_rate, "", mask)
