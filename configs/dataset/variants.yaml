@@ -2,8 +2,8 @@
 # appropriate locations on disk
 
 _name_: variants
-data_path: /home/passch/data/datasplits/VariaNTS_Words/full_80-10-10_aug/
-file_base_path: /home/passch/data/VariaNTS_words_16kHz_aug/
+data_path: /home/passch/data/datasplits/VariaNTS_Words/HP_synth_aug_70-15-15/
+file_base_path: /home/passch/data/VariaNTS_words_16kHz_HP_synth_aug/
 segment_length: 16000
 sampling_rate: 16000
 
