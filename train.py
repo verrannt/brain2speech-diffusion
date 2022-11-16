@@ -128,11 +128,17 @@ def train(
     if ckpt_epoch >= 0:
         try:
             # Load checkpoint file
-            model_path = os.path.join(checkpoint_directory, '{}.pkl'.format(ckpt_epoch))
+            model_path = os.path.join(checkpoint_directory, f'{ckpt_epoch}.pkl')
             checkpoint = torch.load(model_path, map_location='cpu')
 
-            # Feed model dict and optimizer state
-            model.load_state_dict(checkpoint['model_state_dict'])
+            if model_cfg.unconditional:
+                model.load_state_dict(checkpoint['model_state_dict'])
+            else:
+                model.load_state_dict(
+                    checkpoint['model_state_dict'],
+                    checkpoint.get('conditioner_state_dict', None),
+                )
+            
             if 'optimizer_state_dict' in checkpoint:
                 optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 # HACK to reset learning rate
@@ -145,6 +151,13 @@ def train(
     else:
         print('No valid checkpoint model found - training from scratch.')
         ckpt_epoch = -1
+
+    # If provided, load the weights from pretraining of the generator
+    if model_cfg.get("pretrained_generator", False) and not model_cfg.unconditional:
+        checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
+        model.load_pretrained_generator(checkpoint['model_state_dict'])
+        print(f"Successfully loaded pretrained generator.")
+
 
     # TRAINING
 
@@ -159,25 +172,26 @@ def train(
         epoch_loss = 0.
         print()
         for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
-            if model_cfg["unconditional"]:
+            if model_cfg.unconditional:
                 audio, _, _, mask = data
                 audio = audio.cuda()
                 if mask is not None:
                     mask = mask.cuda()
-                mel_spectrogram = None
+                conditional_input = None
             else:
-                mel_spectrogram, audio = data
-                mel_spectrogram = mel_spectrogram.cuda()
+                audio, _, conditional_input, mask = data
                 audio = audio.cuda()
-                mask = None
+                conditional_input = conditional_input.cuda()
+                if mask is not None:
+                    mask = mask.cuda()
 
             optimizer.zero_grad()
             loss = compute_loss(
-                model, 
-                loss_fn, 
-                audio, 
-                diffusion_hyperparams, 
-                mel_spec=mel_spectrogram, 
+                model,
+                loss_fn,
+                audio,
+                diffusion_hyperparams,
+                conditional_input=conditional_input,
                 mask=mask,
             )
 
@@ -216,11 +230,19 @@ def train(
             checkpoint_path_full = os.path.join(checkpoint_directory, checkpoint_name)
 
             # Save to local dir
+            save_dict = {
+                'optimizer_state_dict': optimizer.state_dict()
+            }
+            
+            if model_cfg.unconditional:
+                save_dict['model_state_dict'] = model.state_dict()
+            else:
+                # In the conditional setting, we get two model states from the two sub-models
+                save_dict['model_state_dict'] = model.generator_state_dict()
+                save_dict['conditioner_state_dict'] = model.encoder_state_dict()
+            
             torch.save(
-                {
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict()
-                },
+                save_dict,
                 checkpoint_path_full,
             )
             
@@ -232,17 +254,15 @@ def train(
             print('Created model checkpoint')
 
             # Generate samples
-            if not model_cfg["unconditional"]: 
-                assert generate_cfg.mel_name is not None
-
             generate_cfg["ckpt_epoch"] = epoch
             
             samples = generate( 
                 rank,
-                diffusion_cfg, 
-                model_cfg, 
+                model,
+                model_cfg,
+                diffusion_cfg,
                 dataset_cfg,
-                name=name,
+                name,
                 **generate_cfg,
             )
 
@@ -264,24 +284,25 @@ def train(
             print()
             val_loss = 0
             for data in tqdm(valloader, desc='Validating', ncols=100):
-                if model_cfg["unconditional"]:
+                if model_cfg.unconditional:
                     audio, _, _, mask = data
                     audio = audio.cuda()
                     if mask is not None:
                         mask = mask.cuda()
-                    mel_spectrogram = None
+                    conditional_input = None
                 else:
-                    mel_spectrogram, audio = data
-                    mel_spectrogram = mel_spectrogram.cuda()
+                    audio, _, conditional_input, mask = data
                     audio = audio.cuda()
-                    mask = None
+                    conditional_input = conditional_input.cuda()
+                    if mask is not None:
+                        mask = mask.cuda()
 
                 loss_value = compute_loss(
                     model, 
                     loss_fn, 
                     audio, 
                     diffusion_hyperparams, 
-                    mel_spec=mel_spectrogram, 
+                    conditional_input=conditional_input, 
                     mask=mask,
                 ).item()
 
@@ -306,24 +327,25 @@ def train(
         print("\n" + "-"*100 + "\n")
         test_loss = 0.
         for data in tqdm(testloader, desc='Testing', ncols=100):
-            if model_cfg["unconditional"]:
+            if model_cfg.unconditional:
                 audio, _, _, mask = data
                 audio = audio.cuda()
                 if mask is not None:
                     mask = mask.cuda()
-                mel_spectrogram = None
+                conditional_input = None
             else:
-                mel_spectrogram, audio = data
-                mel_spectrogram = mel_spectrogram.cuda()
+                audio, _, conditional_input, mask = data
                 audio = audio.cuda()
-                mask = None
+                conditional_input = conditional_input.cuda()
+                if mask is not None:
+                    mask = mask.cuda()
 
             loss_value = compute_loss(
                 model, 
                 loss_fn, 
                 audio, 
                 diffusion_hyperparams, 
-                mel_spec=mel_spectrogram, 
+                conditional_input=conditional_input, 
                 mask=mask,
             ).item()
 
@@ -339,7 +361,7 @@ def train(
     if rank == 0:
         wandb.finish()
 
-def compute_loss(model, loss_fn, audio, diffusion_hyperparams, mel_spec=None, mask=None):
+def compute_loss(model, loss_fn, audio, diffusion_hyperparams, conditional_input=None, mask=None):
     """
     Compute the training loss of epsilon and epsilon_theta
 
@@ -369,7 +391,7 @@ def compute_loss(model, loss_fn, audio, diffusion_hyperparams, mel_spec=None, ma
     transformed_X = torch.sqrt(Alpha_bar[diffusion_steps]) * audio + torch.sqrt(1-Alpha_bar[diffusion_steps]) * z
     
     # predict epsilon according to epsilon_theta
-    epsilon_theta = model((transformed_X, diffusion_steps.view(B,1),), mel_spec=mel_spec)
+    epsilon_theta = model((transformed_X, diffusion_steps.view(B,1)), conditional_input=conditional_input)
 
     return loss_fn(epsilon_theta, z, mask)
 
