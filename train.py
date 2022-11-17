@@ -269,7 +269,7 @@ def train(
             samples = [
                 wandb.Audio(
                     sample.squeeze().cpu(), 
-                    sample_rate = dataset_cfg['sampling_rate']
+                    sample_rate = dataset_cfg.sampling_rate
                 ) for sample in samples
             ]
 
