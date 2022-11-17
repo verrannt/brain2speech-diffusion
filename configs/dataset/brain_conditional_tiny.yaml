@@ -3,5 +3,5 @@
 _name_: brain_conditional
 data_path: /home/passch/data/hp1_eeg_conditional/
 segment_length: 150 # In milliseconds
-sample_rate_audio: 16000
-sample_rate_eeg: 100
+sampling_rate: 16000 # audio sampling rate
+sampling_rate_eeg: 100 # brain electrodes sampling rate

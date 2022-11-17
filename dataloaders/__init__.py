@@ -40,16 +40,16 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         trainset = EEGDataset(
             path = dataset_cfg.data_path,
             subset = "train",
-            sample_length = dataset_cfg.segment_length,
-            sample_rate_audio = dataset_cfg.sample_rate_audio,
-            sample_rate_eeg = dataset_cfg.sample_rate_eeg,
+            segment_length = dataset_cfg.segment_length,
+            sampling_rate_audio = dataset_cfg.sampling_rate,
+            sampling_rate_eeg = dataset_cfg.sampling_rate_eeg,
             seed = SHUFFLING_SEED)
         valset = EEGDataset(
             path = dataset_cfg.data_path,
             subset = "val",
-            sample_length = dataset_cfg.segment_length,
-            sample_rate_audio = dataset_cfg.sample_rate_audio,
-            sample_rate_eeg = dataset_cfg.sample_rate_eeg,
+            segment_length = dataset_cfg.segment_length,
+            sampling_rate_audio = dataset_cfg.sampling_rate,
+            sampling_rate_eeg = dataset_cfg.sampling_rate_eeg,
             seed = SHUFFLING_SEED)
     
     # Use distributed sampling for the train set. Note that we do not use

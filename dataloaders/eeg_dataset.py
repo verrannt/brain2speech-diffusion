@@ -19,9 +19,9 @@ class EEGDataset(Dataset):
         self, 
         path: str, 
         subset: str, 
-        sample_length: int = 1000, # in milliseconds
-        sample_rate_audio: int = 16000,
-        sample_rate_eeg: int = 100, 
+        segment_length: int = 1000, # in milliseconds
+        sampling_rate_audio: int = 16000,
+        sampling_rate_eeg: int = 100, 
         shuffle: bool = True,
         seed: int = None,
         standardize_eeg: bool = True,
@@ -50,11 +50,11 @@ class EEGDataset(Dataset):
         # This might be more elegant but does not guarantee that eeg and audio files match correctly:
         # self._files = list(zip(*[self._eeg_files, self._audio_files]))
 
-        if not sample_length:
+        if not segment_length:
             raise ValueError("Sample length cannot be None")
-        self.sample_length = sample_length
-        self.sample_length_audio = int(sample_length * sample_rate_audio / 1000) # TODO is this correct?
-        self.sample_length_eeg = int(sample_length * sample_rate_eeg / 1000)
+        self.segment_length = segment_length
+        self.segment_length_audio = int(segment_length * sampling_rate_audio / 1000) # TODO is this correct?
+        self.segment_length_eeg = int(segment_length * sampling_rate_eeg / 1000)
 
         self.should_standardize_eeg = standardize_eeg
 
@@ -65,7 +65,8 @@ class EEGDataset(Dataset):
     def __len__(self) -> int:
         return len(self._files)
 
-    def standardize_eeg(self, tensor: Tensor) -> Tensor:
+    @classmethod
+    def standardize_eeg(cls, tensor: Tensor) -> Tensor:
         """
         Standardize EEG input tensor to mean 0 and standard deviation 1 along the last dimension (time).
         """
@@ -95,24 +96,24 @@ class EEGDataset(Dataset):
         """
         assert len(tensor.shape) == 2 and tensor.shape[0] == 1
 
-        if tensor.shape[1] > self.sample_length_audio:
+        if tensor.shape[1] > self.segment_length_audio:
             # If tensor is longer than desired length, the mask is only True
             # values
-            mask = torch.ones((1,self.sample_length_audio), dtype=torch.bool)
+            mask = torch.ones((1,self.segment_length_audio), dtype=torch.bool)
 
-            return tensor[:, :self.sample_length_audio], mask
+            return tensor[:, :self.segment_length_audio], mask
         
-        elif tensor.shape[1] < self.sample_length_audio:
+        elif tensor.shape[1] < self.segment_length_audio:
             # If tensor is shorter than desired length, the mask is True until
             # the original length of the tensor, and False afterwards
-            mask = torch.zeros((1,self.sample_length_audio), dtype=torch.bool)
+            mask = torch.zeros((1,self.segment_length_audio), dtype=torch.bool)
             mask[:,:tensor.shape[1]] = True
             
             # We pad the tensor with zero values to increase its size to the
             # desired length
             padded_tensor = torch.cat([
                 tensor, 
-                torch.zeros(1, self.sample_length_audio-tensor.shape[1])
+                torch.zeros(1, self.segment_length_audio-tensor.shape[1])
             ], dim=1)
 
             return padded_tensor, mask
@@ -120,20 +121,21 @@ class EEGDataset(Dataset):
         else:
             # In case the tensor has already the desired length, we use a mask
             # of only True values again and can return the tensor unaltered
-            mask = torch.ones((1,self.sample_length_audio), dtype=torch.bool)
+            mask = torch.ones((1,self.segment_length_audio), dtype=torch.bool)
             return tensor, mask
 
-    def fix_length_eeg(self, tensor: Tensor) -> Tensor:
+    @classmethod
+    def fix_length_eeg(cls, tensor: Tensor, desired_length: int) -> Tensor:
         # Assumes the eeg matrix has dimensions: 2 (Channels), 32 (Electrodes), T (Timesteps)
         assert len(tensor.shape) == 3 and tensor.shape[0] == 2 and tensor.shape[1] == 32
 
-        if tensor.shape[2] > self.sample_length_eeg:
-            return tensor[:, :, :self.sample_length_eeg]
+        if tensor.shape[2] > desired_length:
+            return tensor[:, :, :desired_length]
 
-        elif tensor.shape[2] < self.sample_length_eeg:
+        elif tensor.shape[2] < desired_length:
             return torch.cat([
                 tensor, 
-                torch.zeros(2, 32, self.sample_length_eeg - tensor.shape[2])
+                torch.zeros(2, 32, desired_length - tensor.shape[2])
             ], dim=2)
 
         else:
@@ -150,6 +152,6 @@ class EEGDataset(Dataset):
         # Norm waveform to designated length and get padding mask
         waveform, mask = self.fix_length_audio(waveform)
         # Norm eeg to designated length
-        eeg = self.fix_length_eeg(eeg)
+        eeg = self.fix_length_eeg(eeg, self.segment_length_eeg)
 
         return (waveform, sample_rate, eeg, mask)
