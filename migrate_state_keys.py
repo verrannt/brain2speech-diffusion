@@ -75,7 +75,7 @@ def update_model_state_keys(model_checkpoint_path, state_key_resolution_dict_pat
             'model_state_dict': new_model_dict,
             'optimizer_state_dict': optimizer_dict, # left unchanged
         },
-        model_checkpoint_path,
+        f'{model_checkpoint_path}.migrated_keys',
     )
 
 
