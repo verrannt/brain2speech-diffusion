@@ -154,9 +154,12 @@ def train(
 
     # If provided, load the weights from pretraining of the generator
     if model_cfg.get("pretrained_generator", False) and not model_cfg.unconditional:
-        checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
-        model.load_pretrained_generator(checkpoint['model_state_dict'])
-        print(f"Successfully loaded pretrained generator.")
+        if ckpt_epoch != -1:
+            print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
+        else:
+            checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
+            model.load_pretrained_generator(checkpoint['model_state_dict'])
+            print(f"Successfully loaded pretrained generator.")
 
 
     # TRAINING
@@ -394,6 +397,7 @@ def compute_loss(model, loss_fn, audio, diffusion_hyperparams, conditional_input
     epsilon_theta = model((transformed_X, diffusion_steps.view(B,1)), conditional_input=conditional_input)
 
     return loss_fn(epsilon_theta, z, mask)
+    # return loss_fn(epsilon_theta, z)
 
 
 @hydra.main(version_base=None, config_path="configs/", config_name="config")
