@@ -8,9 +8,8 @@ res_channels: 256
 skip_channels: 256
 num_res_layers: 36
 dilation_cycle: 12
-conditioner_inplanes: 128
 encoder_config:
   c_in: 2
   c_mid: 64
   c_out: 128
-# pretrained_generator: /home/passch/exp/pretrain-generator-1_h256_d36_T20_betaT0.02_uncond/checkpoint/3.pkl
+pretrained_generator: /home/passch/exp/VariaNTSWords-v6/checkpoint/550.pkl
