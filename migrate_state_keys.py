@@ -65,7 +65,10 @@ def update_model_state_keys(model_checkpoint_path, state_key_resolution_dict_pat
     assert len(original_model_dict) == len(key_resolution_dict), "Unequal number of keys"
 
     for k, v in original_model_dict.items():
-        new_model_dict[key_resolution_dict[k]] = v
+        try:
+            new_model_dict[key_resolution_dict[k]] = v
+        except KeyError:
+            print(f'[ WARN ] Key not present: {k}')
 
     torch.save(
         {
