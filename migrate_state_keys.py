@@ -62,7 +62,7 @@ def update_model_state_keys(model_checkpoint_path, state_key_resolution_dict_pat
         with open(state_key_resolution_dict_path, 'r') as f:
             key_resolution_dict = json.loads(f.read())
 
-    assert len(original_model_dict) == len(key_resolution_dict)
+    assert len(original_model_dict) == len(key_resolution_dict), "Unequal number of keys"
 
     for k, v in original_model_dict.items():
         new_model_dict[key_resolution_dict[k]] = v
