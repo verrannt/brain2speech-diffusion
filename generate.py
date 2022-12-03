@@ -10,7 +10,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from dataloaders import EEGDataset
+import dataloaders.utils as data_utils
 from models import construct_model
 from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
 
@@ -185,8 +185,8 @@ def load_conditional_file(file_path: str, length: int) -> Tensor:
     Load a conditional input file from Numpy array stored on disk and post-process it (normalization and length fixing)
     """
     x = torch.from_numpy(np.load(file_path)).float()
-    x = EEGDataset.standardize_eeg(x)
-    x = EEGDataset.fix_length_eeg(x, length)
+    x = data_utils.standardize_eeg(x)
+    x = data_utils.fix_length_3d(x, length)
     x = x.unsqueeze(0) # extend batch dimension
     return x
 

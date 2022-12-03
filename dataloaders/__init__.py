@@ -1,9 +1,13 @@
 from random import shuffle
+from pathlib import Path
+
 import torch
 from torch.utils.data.distributed import DistributedSampler
 
 from .csv_dataset import CSVDataset
 from .eeg_dataset import EEGDataset
+from .utils import *
+from .conditional_loaders import EEGRandomLoader
 
 
 SHUFFLING_SEED = 1144
@@ -14,26 +18,53 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
 
     valset, testset = None, None
 
-    if dataset_name == "variants":
-        # assert unconditional TODO Undo commenting out
+    if dataset_name == "variants" or dataset_name == "variants_brain":
+        if dataset_name == "variants":
+            assert unconditional
+            segment_length_audio = dataset_cfg.segment_length
+            
+            train_conditional_loader = None
+            val_conditional_loader = None
+        else:
+            assert not unconditional
+            eeg_path = Path(dataset_cfg.eeg_path)
+            # In conditional setting, segment length is given in milliseconds 
+            # instead of frames, so has to be converted to frames first
+            segment_length_eeg = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
+            segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
+            
+            train_conditional_loader = EEGRandomLoader(
+                path = eeg_path / 'train',
+                segment_length = segment_length_eeg)
+            val_conditional_loader = EEGRandomLoader(
+                path = eeg_path / 'val',
+                segment_length = segment_length_eeg)
+        
         trainset = CSVDataset(
             path = dataset_cfg.data_path,
             subset = "train",
             file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length,
-            min_max_norm = dataset_cfg.get('min_max_norm', False))
+            sample_length = segment_length_audio,
+            min_max_norm = dataset_cfg.get('min_max_norm', False),
+            seed=SHUFFLING_SEED,
+            conditional_loader=train_conditional_loader)
+        
         valset = CSVDataset(
             path = dataset_cfg.data_path,
             subset = "val",
             file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length,
-            min_max_norm = dataset_cfg.get('min_max_norm', False))
-        testset = CSVDataset(
-            path = dataset_cfg.data_path,
-            subset = "test",
-            file_base_path = dataset_cfg.file_base_path,
-            sample_length = dataset_cfg.segment_length,
-            min_max_norm = dataset_cfg.get('min_max_norm', False))
+            sample_length = segment_length_audio,
+            min_max_norm = dataset_cfg.get('min_max_norm', False),
+            seed=SHUFFLING_SEED,
+            conditional_loader=val_conditional_loader)
+        
+        # testset = CSVDataset(
+        #     path = dataset_cfg.data_path,
+        #     subset = "test",
+        #     file_base_path = dataset_cfg.file_base_path,
+        #     sample_length = dataset_cfg.segment_length,
+        #     min_max_norm = dataset_cfg.get('min_max_norm', False),
+        #     seed=SHUFFLING_SEED)
 
     elif dataset_name == "brain_conditional":
         assert not unconditional # TODO do we really need this, or would be fine without?
