@@ -26,10 +26,10 @@ class BrainEncoder(nn.Module):
         self.net = nn.Sequential(
             nn.ConvTranspose2d(c_in, c_mid, (3, 32), padding=(1, pad_y), stride=(1, stride_y + 2)),
             nn.ReLU(),
-            nn.AvgPool2d((3, 1)),
+            nn.AvgPool2d((2, 1)),
             nn.ConvTranspose2d(c_mid, c_out, (3, 32), padding=(1, pad_y), stride=(1, stride_y)),
             nn.ReLU(),
-            nn.AvgPool2d((7, 1)),
+            nn.AvgPool2d((3, 1)),
         )
 
     def forward(self, x):
