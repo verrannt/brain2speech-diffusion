@@ -1,0 +1,9 @@
+# Config file for the VariaNTS dataset loaded from a .csv file, 
+
+_name_: variants
+data_path: /home/passch/data/datasplits/VariaNTS_Words/HP_synth_sameval_aug_90-10/
+file_base_path: /home/passch/data/VariaNTS_words_16kHz_HP_synth_sameval_aug/
+eeg_path: /home/passch/data/hp1_eeg_conditional_focused/
+segment_length: 1000 # In milliseconds
+sampling_rate: 16000 # audio sampling rate
+sampling_rate_eeg: 100 # brain electrodes sampling rate
