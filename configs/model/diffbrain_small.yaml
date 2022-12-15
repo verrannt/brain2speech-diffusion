@@ -12,4 +12,4 @@ encoder_config:
   c_in: 2
   c_mid: 64
   c_out: 128
-pretrained_generator: /home/passch/exp/pretrain-generator-1_h256_d36_T20_betaT0.02_uncond/checkpoint/3.pkl
+# pretrained_generator: /home/passch/exp/pretrain-generator-1_h256_d36_T20_betaT0.02_uncond/checkpoint/3.pkl
