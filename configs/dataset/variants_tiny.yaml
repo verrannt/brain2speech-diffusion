@@ -6,7 +6,7 @@
 # works well. However, this will not produce good results
 
 _name_: variants
-data_path: /home/passch/data/datasplits/VariaNTS_Words/tiny_subset0.015-50-25-25
-file_base_path: /home/passch/data/VariaNTS_words_16kHz/
-segment_length: 5000 # in frames
+data_path: /home/passch/data/datasplits/VariaNTS/tiny_subset0.015-50-25-25/
+file_base_path: /home/passch/data/VariaNTS/VariaNTS_words_16kHz/
+segment_length: 150 # In milliseconds
 sampling_rate: 16000

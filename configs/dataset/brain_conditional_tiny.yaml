@@ -1,7 +1,9 @@
 # Config file for the brain recording Harry Potter reading dataset
 
 _name_: brain_conditional
-data_path: /home/passch/data/hp1_eeg_conditional/
+splits_path: /home/passch/data/datasplits/HP1_EEG_conditional/selected-electrodes_denoised/
+data_path: /home/passch/data/HP1_EEG_conditional/selected-electrodes_denoised/
+eeg_path: /home/passch/data/HP1_EEG_conditional/selected-electrodes_denoised/
 segment_length: 150 # In milliseconds
 sampling_rate: 16000 # audio sampling rate
 sampling_rate_eeg: 100 # brain electrodes sampling rate
