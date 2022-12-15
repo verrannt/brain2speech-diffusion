@@ -89,3 +89,18 @@ def standardize_eeg(tensor: Tensor) -> Tensor:
     mean = torch.mean(tensor, dim=2).unsqueeze(2).expand(-1,-1, tensor.shape[2])
     std = torch.std(tensor, dim=2).unsqueeze(2).expand(-1,-1, tensor.shape[2])
     return (tensor - mean) / std
+
+def min_max_norm_audio(tensor: Tensor) -> Tensor:
+    """
+    Min-max scale input tensor from `Int16` range to `[-1, 1]`.
+
+    The tensor can theoretically have any dtype, but min and max values
+    are assumed to be the min and max values of `Int16`, which are
+    `-32768` and `32767`.
+
+    The general formula for range `[a, b]` is:
+    ```
+    a + ( (x - min) * (b - a) ) / (max - min)
+    ```
+    """
+    return -1 + (tensor + 32768) * 2 / 65535
