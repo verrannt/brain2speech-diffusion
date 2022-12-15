@@ -3,12 +3,12 @@ defaults:
   - experiment: variants
 
 train: # Not used in generate.py
-  name: VariaNTSWords-v4 # Name of experiment (prefix of experiment name)
-                         # This will also be used as the W&B run name
+  name: Dummy-Name # Name of experiment (prefix of experiment name)
+                   # This will also be used as the W&B run name
   ckpt_epoch: max
-  epochs_per_ckpt: 10
-  iters_per_logging: 20
-  n_epochs: 1
+  epochs_per_ckpt: 5
+  iters_per_logging: 10
+  n_epochs: 10
   learning_rate: 2e-4
   batch_size_per_gpu: 8
 
