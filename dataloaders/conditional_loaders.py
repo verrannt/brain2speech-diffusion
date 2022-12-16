@@ -58,7 +58,7 @@ class EEGRandomLoader(EEGLoader):
     def __init__(
         self,
         path: str,
-        seed: int | None, 
+        seed: int, 
         segment_length: int,
     ) -> None:
         super().__init__(segment_length)
