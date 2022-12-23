@@ -16,7 +16,9 @@ generate:
   ckpt_epoch: max # Which checkpoint to use; assign a number or "max". Is ignored when sampling during training
   n_samples: 8 # Number of utterances to be generated (per GPU)
   batch_size: null # Number of samples to generate at once per GPU. null means max (equal to samples_per_gpu)
-  conditional_file: /home/passch/data/HP1_EEG_conditional/denoised_fixed-transcript_cleaned/dag7.npy # Path to conditional input on disk. Can be null in unconditional setting.
+  # Path to conditional input on disk in brain-conditional setting, or word class in class-conditional setting. Can be null in unconditional setting.
+  conditional_signal: /home/passch/data/HP1_EEG_conditional/denoised_fixed-transcript_cleaned/dag7.npy 
+  conditional_type: brain # Can be "brain" for ECoG input or "class" for class-conditional sampling
 
 distributed:
   dist_backend: nccl

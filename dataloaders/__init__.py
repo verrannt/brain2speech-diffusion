@@ -7,7 +7,7 @@ from torch.utils.data.distributed import DistributedSampler
 from .csv_dataset import CSVDataset
 from .eeg_dataset import EEGDataset
 from .utils import *
-from .conditional_loaders import EEGRandomLoader, EEGExactLoader
+from .conditional_loaders import EEGRandomLoader, EEGExactLoader, ClassConditionalLoader
 
 
 SHUFFLING_SEED = 1144
@@ -20,13 +20,15 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
 
     # Convert segment length from milliseconds to frames
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
-    if not unconditional:
+    if not unconditional and 'brain' in dataset_name:
         segment_length_eeg = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
         eeg_path = Path(dataset_cfg.eeg_path)
 
     if dataset_name == "variants":
-        assert unconditional
-        conditional_loader = None
+        if unconditional:
+            conditional_loader = None
+        else:
+            conditional_loader = ClassConditionalLoader(words_file='/home/passch/data/HP_VariaNTS_intersection.txt')
 
     elif dataset_name == "variants_brain":
         assert not unconditional

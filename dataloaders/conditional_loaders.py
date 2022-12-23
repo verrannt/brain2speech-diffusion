@@ -24,6 +24,26 @@ def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_n
     return filepath
 
 
+class ClassConditionalLoader:
+    """
+    Get one-hot encoded class labels based on words from a given file.
+    """
+
+    def __init__(self, words_file) -> None:
+        with open(words_file, 'r') as file:
+            words = file.read().split(',')
+        self.word_tokens = { words[i] : i for i in range(len(words))}
+        self.num_classes = len(words)
+
+    def __call__(self, audio_file_path: str):
+        word = get_word_from_filepath(audio_file_path)
+        try:
+            idx = self.word_tokens[word]
+        except KeyError:
+            raise ValueError(f"Unrecognized word: {word}")
+        return torch.LongTensor([idx])
+
+
 class EEGLoader(ABC):
     """
     Abstract class for implementing an EEG loader. Subclasses must implement the `retrieve_file` function which returns

@@ -4,16 +4,29 @@ import torch
 import torch.nn as nn
 
 from models.brain_encoder import BrainEncoder
+from models.class_encoder import ClassEncoder
 from models.diffwave import DiffWave
 
 
 
-class DiffBrain(nn.Module): #CoBraWave, CoBraDiff, DiffCoBra, BrainConditionalSpeechGen
-    def __init__(self, encoder_params, decoder_params) -> None:
+class DiffWaveConditional(nn.Module):
+    """
+    Conditional wrapper model, to train and infer an encoder model and DiffWave together in a single model.
+    """
+
+    def __init__(self, encoder_cfg, decoder_cfg) -> None:
         super().__init__()
-            
-        self.encoder = BrainEncoder(**encoder_params)
-        self.speech_generator = DiffWave(**decoder_params)
+        
+        encoder_name = encoder_cfg.pop('name')
+        if encoder_name == 'brain_encoder':
+            encoder_class = BrainEncoder
+        elif encoder_name == 'class_encoder':
+            encoder_class = ClassEncoder
+        else:
+            raise ValueError(f'Unknown conditional encoder: {encoder_name}')
+
+        self.encoder = encoder_class(**encoder_cfg)
+        self.speech_generator = DiffWave(**decoder_cfg)
 
     def forward(self, x, conditional_input):
         

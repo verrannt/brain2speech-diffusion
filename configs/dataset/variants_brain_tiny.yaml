@@ -1,8 +1,8 @@
 # Config file for the VariaNTS dataset loaded from a .csv file, 
 
 _name_: variants_brain
-splits_path: /home/passch/data/datasplits/VariaNTS/HP_synth_sameval_aug_cleaned_90-10_tiny/
-data_path: /home/passch/data/VariaNTS/VariaNTS_words_16kHz_HP_synth_sameval_aug_cleaned/
+splits_path: /home/passch/data/datasplits/VariaNTS/tiny_subset/
+data_path: /home/passch/data/VariaNTS/VariaNTS_words_16kHz_HP_synth_sameval_aug2_cleaned/
 eeg_path: /home/passch/data/HP1_EEG_conditional/denoised_fixed-transcript_cleaned/
 segment_length: 150 # In milliseconds
 sampling_rate: 16000 # audio sampling rate
