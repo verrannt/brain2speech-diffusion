@@ -1,12 +1,11 @@
 # Config file for the VariaNTS dataset loaded from a .csv file pointing to the 
 # appropriate locations on disk.
-# NOTE This is for debugging purposes only, as the tiny subset that is selected here only
-# used 1.5% of the full VariaNTS words corpus, and the segment length is limited to 10k.
-# This should be useful to quickly run training and inference and therefore see if the code
-# works well. However, this will not produce good results
+# NOTE Uses tiny portion of the VariaNTS corpus and small segment length for
+# debugging and testing purposes.
 
 _name_: variants
-splits_path: /home/passch/data/datasplits/VariaNTS/tiny_subset/
-data_path: /home/passch/data/VariaNTS/VariaNTS_words_16kHz_HP_synth_sameval_aug/
+splits_path: datasplits/VariaNTS/tiny_subset/
+audio_path: VariaNTS/VariaNTS_words_16kHz_HP_synth_sameval_aug/
+data_base_dir : /home/passch/data/
 segment_length: 150 # In milliseconds
 sampling_rate: 16000

@@ -22,7 +22,7 @@ class CSVDataset(Dataset):
         self, 
         csv_path: str, 
         subset: str, 
-        data_path: str, 
+        audio_path: str, 
         segment_length: int = 16000,
         shuffle: bool = True,
         seed: int = None,
@@ -43,7 +43,7 @@ class CSVDataset(Dataset):
             load. The chosen subset must be present as "<subset>.csv" in the
             `csv_path` given as argument, e.g. "train.csv".
         
-        data_path : 
+        audio_path : 
             If given, this path is prepended to every filename in
             the loaded .csv file.
         
@@ -72,10 +72,10 @@ class CSVDataset(Dataset):
             else:
                 self._files = sorted(self._files)
 
-        if data_path:
-            data_path = Path(data_path)
+        if audio_path:
+            audio_path = Path(audio_path)
             self._files = [
-                str(data_path/file_path) for file_path in self._files
+                str(audio_path/file_path) for file_path in self._files
             ]
 
         if segment_length is None:

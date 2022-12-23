@@ -58,14 +58,9 @@ def generate(
 
     # Compute audio length in no. of frames from segment length in milliseconds and sampling rate
     audio_length = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
-
-    if conditional_type == 'brain':
-        eeg_length = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
-    else:
-        eeg_length = None
     
     # Load conditional input (`None` if none given)
-    conditional_input = load_conditional_input(conditional_signal, conditional_type, eeg_length)
+    conditional_input = load_conditional_input(conditional_signal, conditional_type, dataset_cfg)
 
     # Print information about inference
     print(f'Audio length: {audio_length}, Samples: {n_samples}, Batch size: {batch_size}, Reverse steps (T): {diffusion_hyperparams["T"]}')
@@ -182,7 +177,7 @@ def load_model(model_cfg, local_path, unconditional: bool):
     return model
 
 
-def load_conditional_input(conditional_signal: str, conditional_type: str, eeg_length: int = None) -> Tensor:
+def load_conditional_input(conditional_signal: str, conditional_type: str, dataset_cfg: DictConfig) -> Tensor:
     """
     Load conditional input, either by reading an EEG file from disk or getting the token for a word class. This depends
     on whether `conditional_type` is `brain` or `class`, respectively.
@@ -194,8 +189,9 @@ def load_conditional_input(conditional_signal: str, conditional_type: str, eeg_l
         `conditional_type==class`)
     conditional_type : 
         The type of conditional signal to load.
-    eeg_length :
-        Length of the desired EEG signal (will be cut or extended to this length if not matching)
+    dataset_cfg :
+        Dataset configuration, needed to get desired EEG length (if `conditional_type==brain`) or data dir for words
+        used for class-conditional sampling (if `conditional_type==class`).
 
     Raises
     ------
@@ -205,15 +201,16 @@ def load_conditional_input(conditional_signal: str, conditional_type: str, eeg_l
     if conditional_signal is None:
         return None
     else:
-        # For class-conditional sampling, get the word class from the provided file
+        # For class-conditional sampling, get the token from the provided word class
         if conditional_type == "class":
-            conditional_loader = ClassConditionalLoader(words_file='/home/passch/data/HP_VariaNTS_intersection.txt')
-            return conditional_loader(conditional_signal).cuda().unsqueeze(0)
+            conditional_loader = ClassConditionalLoader(
+                os.path.join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
+            return conditional_loader(conditional_signal).unsqueeze(0).cuda()
         
         # For brain-conditional sampling, load the provided file directly
         elif conditional_type == "brain":
-            assert eeg_length is not None
-            return load_eeg_file(conditional_signal, eeg_length).cuda().unsqueeze(0)
+            eeg_length = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
+            return load_eeg_file(conditional_signal, eeg_length).unsqueeze(0).cuda()
         
         else:
             raise ValueError(f"Unknown conditional type: {conditional_type}")

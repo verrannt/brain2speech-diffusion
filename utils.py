@@ -124,6 +124,14 @@ def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_director
     return local_path, output_directory
 
 
+def prepend_data_base_dir(dataset_cfg):
+    dataset_cfg.audio_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.audio_path)
+    dataset_cfg.splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.splits_path)
+    if 'eeg_path' in dataset_cfg:
+        dataset_cfg.eeg_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.eeg_path)
+    return dataset_cfg
+
+
 # Utilities for diffusion models
 
 def calc_diffusion_hyperparams(T, beta_0, beta_T, beta=None, fast=False):

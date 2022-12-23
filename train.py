@@ -15,7 +15,7 @@ from generate import generate
 from dataloaders import dataloader
 from distributed_util import init_distributed, apply_gradient_allreduce, reduce_tensor
 from models import construct_model
-from utils import MaskedMSELoss, find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
+from utils import *
 
 
 def distributed_train(
@@ -93,6 +93,8 @@ def train(
     batch_size_per_gpu:     batchsize per gpu, default is 2 so total batchsize is 16 with 8 gpus
     name:                   prefix in front of experiment name
     """
+
+    dataset_cfg = prepend_data_base_dir(dataset_cfg)
 
     local_path, checkpoint_directory = local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, 'checkpoint')
 

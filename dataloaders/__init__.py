@@ -1,11 +1,11 @@
 from random import shuffle
+from os.path import join
 from pathlib import Path
 
 import torch
 from torch.utils.data.distributed import DistributedSampler
 
 from .csv_dataset import CSVDataset
-from .eeg_dataset import EEGDataset
 from .utils import *
 from .conditional_loaders import EEGRandomLoader, EEGExactLoader, ClassConditionalLoader
 
@@ -28,7 +28,8 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         if unconditional:
             conditional_loader = None
         else:
-            conditional_loader = ClassConditionalLoader(words_file='/home/passch/data/HP_VariaNTS_intersection.txt')
+            conditional_loader = ClassConditionalLoader(
+                words_file=join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
 
     elif dataset_name == "variants_brain":
         assert not unconditional
@@ -49,7 +50,7 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
     trainset = CSVDataset(
         csv_path = dataset_cfg.splits_path,
         subset = "train",
-        data_path = dataset_cfg.data_path,
+        audio_path = dataset_cfg.audio_path,
         segment_length = segment_length_audio,
         seed=SHUFFLING_SEED,
         conditional_loader=conditional_loader)
@@ -57,7 +58,7 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
     valset = CSVDataset(
         csv_path = dataset_cfg.splits_path,
         subset = "val",
-        data_path = dataset_cfg.data_path,
+        audio_path = dataset_cfg.audio_path,
         segment_length = segment_length_audio,
         seed=SHUFFLING_SEED,
         conditional_loader=conditional_loader)
