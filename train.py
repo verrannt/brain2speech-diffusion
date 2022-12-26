@@ -122,7 +122,8 @@ def train(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-    loss_fn = MaskedMSELoss()
+    # loss_fn = MaskedMSELoss()
+    loss_fn = torch.nn.MSELoss()
 
     # Load checkpoint
     if ckpt_epoch == 'max':
@@ -407,8 +408,8 @@ def compute_loss(model, loss_fn, audio, diffusion_hyperparams, conditional_input
     # predict epsilon according to epsilon_theta
     epsilon_theta = model((transformed_X, diffusion_steps.view(B,1)), conditional_input=conditional_input)
 
-    return loss_fn(epsilon_theta, z, mask)
-    # return loss_fn(epsilon_theta, z)
+    # return loss_fn(epsilon_theta, z, mask)
+    return loss_fn(epsilon_theta, z)
 
 
 @hydra.main(version_base=None, config_path="configs/", config_name="config")
