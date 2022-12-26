@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
-  - /model: diffwave_class
-  - /dataset: variants
+  - /model: brain_conditional
+  - /dataset: brain_conditional
 
 diffusion:
   T: 200

@@ -8,6 +8,12 @@
 >
 > The rest of this Readme is the original one from albertfgu's repository.
 
+Quick note on running smaller versions of a dataset for debugging:
+
+* Pass `dataset.segment_length=100` to cut all audio segments to 100 ms
+* For VariaNTS dataset, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch
+* Pass `experiment.diffusion.T=20` to reduce number of diffusion steps in generation
+
 ## :point_down: Original ReadMe
 
 This repository is an implementation of the waveform synthesizer in [DIFFWAVE: A VERSATILE DIFFUSION MODEL FOR AUDIO SYNTHESIS](https://arxiv.org/pdf/2009.09761.pdf).

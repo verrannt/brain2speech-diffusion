@@ -1,10 +1,10 @@
 # @package _global_
 defaults:
-  - /model: diffbrain_small
-  - /dataset: brain_conditional_tiny
+  - /model: class_conditional
+  - /dataset: variants
 
 diffusion:
-  T: 20
+  T: 200
   beta_0: 0.0001
   beta_T: 0.02
   beta: null

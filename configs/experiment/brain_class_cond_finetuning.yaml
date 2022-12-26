@@ -1,10 +1,10 @@
 # @package _global_
 defaults:
-  - /model: diffwave_class_small
-  - /dataset: variants_tiny
+  - /model: brain_class_conditional
+  - /dataset: brain_conditional
 
 diffusion:
-  T: 20
+  T: 200
   beta_0: 0.0001
   beta_T: 0.02
   beta: null

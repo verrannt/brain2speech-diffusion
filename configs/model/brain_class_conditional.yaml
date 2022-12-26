@@ -4,13 +4,14 @@ out_channels: 1
 diffusion_step_embed_dim_in: 128
 diffusion_step_embed_dim_mid: 512
 diffusion_step_embed_dim_out: 512
-res_channels: 128
+res_channels: 256
 skip_channels: 256
-num_res_layers: 30
-dilation_cycle: 10
-freeze_generator: false
+num_res_layers: 36
+dilation_cycle: 12
+freeze_generator: true
 encoder_config:
-  name: class_encoder
+  name: brain_class_encoder
   n_classes: 55
-  c_mid: 10
-  c_out: 20
+  c_mid: 64
+  c_out: 128
+# pretrained_generator: TODO
