@@ -8,3 +8,4 @@ res_channels: 256
 skip_channels: 256
 num_res_layers: 36
 dilation_cycle: 12
+freeze_generator: false

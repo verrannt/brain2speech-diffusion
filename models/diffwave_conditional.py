@@ -68,3 +68,6 @@ class DiffWaveConditional(nn.Module):
 
     def generator_state_dict(self):
         return self.speech_generator.state_dict()
+
+    def freeze_generator(self):
+        self.speech_generator.requires_grad_(False)

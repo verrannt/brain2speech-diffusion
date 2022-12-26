@@ -8,6 +8,7 @@ res_channels: 128
 skip_channels: 256
 num_res_layers: 30
 dilation_cycle: 10
+freeze_generator: true
 encoder_config:
   name: brain_encoder
   c_in: 2

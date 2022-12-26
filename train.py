@@ -155,14 +155,23 @@ def train(
         ckpt_epoch = -1
 
     # If provided, load the weights from pretraining of the generator
-    if model_cfg.get("pretrained_generator", False) and not model_cfg.unconditional:
-        if ckpt_epoch != -1:
-            print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
+    if model_cfg.get("pretrained_generator", False):
+        if model_cfg.unconditional:
+            print("Pretrained generator assigned, but will not be loaded since this is an unconditional model.")
         else:
-            checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
-            model.load_pretrained_generator(checkpoint['model_state_dict'])
-            print(f"Successfully loaded pretrained generator.")
+            if ckpt_epoch != -1:
+                print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
+            else:
+                checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
+                model.load_pretrained_generator(checkpoint['model_state_dict'])
+                print(f"Successfully loaded pretrained generator.")
 
+    if model_cfg.get("freeze_generator", False):
+        if model_cfg.unconditional:
+            print("Speech generator set to be frozen, but will continue to train since this is an unconditional model.")
+        else:
+            model.freeze_generator()
+            print("Speech generator frozen.")
 
     # TRAINING
 

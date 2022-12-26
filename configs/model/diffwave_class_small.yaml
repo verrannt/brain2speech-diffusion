@@ -8,6 +8,7 @@ res_channels: 128
 skip_channels: 256
 num_res_layers: 30
 dilation_cycle: 10
+freeze_generator: false
 encoder_config:
   name: class_encoder
   n_classes: 55
