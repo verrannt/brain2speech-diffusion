@@ -12,6 +12,8 @@ freeze_generator: true
 encoder_config:
   name: brain_class_encoder
   n_classes: 55
+  c_brain_in: 2000
+  c_brain_mid: 500
   c_mid: 64
   c_out: 128
 # pretrained_generator: TODO

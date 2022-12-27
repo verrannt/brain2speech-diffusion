@@ -139,7 +139,7 @@ def train(
             else:
                 model.load_state_dict(
                     checkpoint['model_state_dict'],
-                    checkpoint.get('conditioner_state_dict', None),
+                    checkpoint['conditioner_state_dict'],
                 )
             
             if 'optimizer_state_dict' in checkpoint:
@@ -164,7 +164,7 @@ def train(
                 print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
             else:
                 checkpoint = torch.load(model_cfg.pretrained_generator, map_location='cpu')
-                model.load_pretrained_generator(checkpoint['model_state_dict'])
+                model.load_pretrained_generator(checkpoint)
                 print(f"Successfully loaded pretrained generator.")
 
     if model_cfg.get("freeze_generator", False):

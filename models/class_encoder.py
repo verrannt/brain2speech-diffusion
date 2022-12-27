@@ -1,3 +1,5 @@
+from typing import Any, Mapping, Optional
+
 import torch
 import torch.nn as nn
 
@@ -20,7 +22,7 @@ class ClassEncoder(nn.Module):
     ):
         super().__init__()
 
-        self.embedding = nn.Embedding(n_classes, 512)
+        self.embedding = nn.Linear(n_classes, 512, bias=False)
 
         self.projection = nn.Sequential(
             # [B, 1, 512]
@@ -32,5 +34,8 @@ class ClassEncoder(nn.Module):
 
     def forward(self, x):
         x = self.embedding(x)
+
+        x = x.unsqueeze(1)
+
         x = self.projection(x)
         return x
