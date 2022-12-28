@@ -79,8 +79,37 @@ def update_model_state_keys(model_checkpoint_path, state_key_resolution_dict_pat
     )
 
 
+def migrate_class_encoder_embedding_weights(checkpoint_path: str, overwrite: bool = False):
+    """
+    Migrate the embedding weights from old to new class encoder, which uses an `nn.Linear` layer for the class label
+    embeddings instead of `nn.Embedding`. Since the weight shapes are reversed, this requires transposing the layer's
+    weight matrix.
+
+    Params:
+    ---
+    checkpoint_path: Path to the pickled model checkpoint on disk. Must be the `DiffWaveConditional` model with 
+    `ClassEncoder` as conditioner.
+    """
+
+    # Read checkpoint
+    checkpoint = torch.load(checkpoint_path,  map_location='cpu')
+    
+    # Transpose weights for embedding layer
+    checkpoint['conditioner_state_dict']['embedding.weight'] = checkpoint['conditioner_state_dict']['embedding.weight'].T
+
+    # Save checkpoint
+    if overwrite:
+        output_path = checkpoint_path
+    else:
+        output_path = checkpoint_path.replace('.pkl', '_updated.pkl')
+    torch.save(checkpoint, output_path)
+
+    return checkpoint
+
+
 if __name__=='__main__':
-    update_model_state_keys(
-        model_checkpoint_path=sys.argv[1],
-        state_key_resolution_dict_path=sys.argv[2]
-    )
+    # update_model_state_keys(
+    #     model_checkpoint_path=sys.argv[1],
+    #     state_key_resolution_dict_path=sys.argv[2]
+    # )
+    migrate_class_encoder_embedding_weights(sys.argv[1])
