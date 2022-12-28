@@ -9,6 +9,9 @@ import torch
 import dataloaders.utils as utils
 
 
+AUDITORY_CORTEX_IDX = [14, 15, 18, 19, 20, 21, 22, 23]
+
+
 def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_numbering: bool = True) -> str:
     """ Extract the word from a given filepath pointing to an audio file on disk. """
     # Get the last part of the path (i.e. just the filename)
@@ -56,12 +59,19 @@ class EEGLoader(ABC):
     def __call__(self, audio_file_path: str):
         # Retrieving a matching EEG file must be handled by the inheriting classes
         eeg_file = self.retrieve_file(audio_file_path)
+        eeg = self.process_eeg(eeg_file, self.segment_length)
+        return eeg
+
+    @staticmethod
+    def process_eeg(eeg_file: str, segment_length: int):
         # Load from path
         eeg = torch.from_numpy(np.load(eeg_file)).float()
+        # Select auditory cortex electrodes only
+        eeg = eeg[:, AUDITORY_CORTEX_IDX, :]
         # Standardize
         eeg = utils.standardize_eeg(eeg)
         # Adjust to designated length
-        eeg = utils.fix_length_3d(eeg, self.segment_length)
+        eeg = utils.fix_length_3d(eeg, segment_length)
         return eeg
 
     @abstractmethod
