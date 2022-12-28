@@ -26,7 +26,7 @@ class BrainClassEncoder(nn.Module):
         self, 
         n_classes : int = 10,
         c_brain_in: int = 2000,
-        c_brain_mid: int = 500,
+        c_brain_mid: int = 1000,
         c_mid : int = 64,
         c_out : int = 128,
         **kwargs,
@@ -55,22 +55,10 @@ class BrainClassEncoder(nn.Module):
             # [B, C_OUT, 16323]
         )
 
-    def forward(self, x):
-        print(x.shape)
-        
-        x = x.reshape(x.size(0), -1)
-        print(x.shape)
-        
-        x = self.brain_classifier(x)
-        print(x.shape)
-        
+    def forward(self, x):        
+        x = x.reshape(x.size(0), -1)        
+        x = self.brain_classifier(x)        
         x = self.embedding(x)
-        print(x.shape)
-
-        x = x.unsqueeze(1)
-        print(x.shape)
-        
-        x = self.projection(x)
-        print(x.shape)
-        
+        x = x.unsqueeze(1)        
+        x = self.projection(x)        
         return x
