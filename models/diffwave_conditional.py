@@ -77,7 +77,7 @@ class DiffWaveConditional(nn.Module):
         # together with the speech generator (i.e. the class-conditional setting)
         if self.encoder.__class__.__name__ == 'BrainClassEncoder':
             self.encoder.embedding.requires_grad_(not freeze)
-            self.encoder.conditioner.requires_grad_(not freeze)
+            self.encoder.projection.requires_grad_(not freeze)
 
     def unfreeze_generator(self):
         self.freeze_generator(False)
