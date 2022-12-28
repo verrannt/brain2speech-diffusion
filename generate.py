@@ -11,6 +11,7 @@ from torch import Tensor
 from tqdm import tqdm
 
 import dataloaders.utils as data_utils
+from dataloaders.conditional_loaders import EEGLoader
 from dataloaders import ClassConditionalLoader
 from models import construct_model
 from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
@@ -210,7 +211,7 @@ def load_conditional_input(conditional_signal: str, conditional_type: str, datas
         # For brain-conditional sampling, load the provided file directly
         elif conditional_type == "brain":
             eeg_length = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
-            return load_eeg_file(conditional_signal, eeg_length).unsqueeze(0).cuda()
+            return EEGLoader.process_eeg(conditional_signal, eeg_length).unsqueeze(0).cuda()
         
         else:
             raise ValueError(f"Unknown conditional type: {conditional_type}")
