@@ -86,6 +86,8 @@ class CSVDataset(Dataset):
 
         self.conditional_loader = conditional_loader
 
+        self.subset = subset
+
     def __getitem__(self, n: int) -> Tuple[Tensor, int, str, Tensor]:
         file_path = self._files[n]
         return self.load_audio(file_path, n)
@@ -104,7 +106,7 @@ class CSVDataset(Dataset):
         waveform, mask = utils.fix_length_1d(waveform, self.segment_length)
 
         if self.conditional_loader is not None:
-            conditional_signal = self.conditional_loader(file_path)
+            conditional_signal = self.conditional_loader(file_path, set=self.subset)
         else:
             conditional_signal = ""
 

@@ -33,9 +33,12 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
 
     elif dataset_name == "variants_brain":
         assert not unconditional
-        # Use random conditional loader because we don't have a 1-to-1 matching between EEG and VariaNTS data
+        # Use random conditional loader with separate train and val splits for the EEG files, because we don't have a
+        # 1-to-1 matching between EEG and VariaNTS data
+        assert 'eeg_splits_path' in dataset_cfg
         conditional_loader = EEGRandomLoader(
             path = eeg_path,
+            splits_path = dataset_cfg.eeg_splits_path,
             seed = SHUFFLING_SEED,
             segment_length = segment_length_eeg)
             
