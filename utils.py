@@ -129,6 +129,8 @@ def prepend_data_base_dir(dataset_cfg):
     dataset_cfg.splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.splits_path)
     if 'eeg_path' in dataset_cfg:
         dataset_cfg.eeg_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.eeg_path)
+    if 'eeg_splits_path' in dataset_cfg:
+        dataset_cfg.eeg_splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.eeg_splits_path)
     return dataset_cfg
 
 
