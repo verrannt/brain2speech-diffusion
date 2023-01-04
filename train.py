@@ -273,11 +273,11 @@ def train(
             
             samples = generate( 
                 rank,
-                model,
                 model_cfg,
                 diffusion_cfg,
                 dataset_cfg,
-                name,
+                model=model,
+                name=name,
                 **generate_cfg,
             )
 

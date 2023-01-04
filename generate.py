@@ -1,3 +1,20 @@
+# -----------------------------------------------------------------------------
+# python diffwave/generate.py \
+#   experiment=variants_class_cond_pretraining \
+#   +generate.name=VariaNTSWords-CC-v2 \
+#   generate.conditional_signal=boel \
+#   generate.conditional_type=class
+
+# Usage call the `generate` function with the appropriate arguments or call
+# as a script:
+# python generate.py <options>
+#
+# where options are:
+# experiment
+# TODO finish this doc
+
+# -----------------------------------------------------------------------------
+
 from functools import partial
 import multiprocessing as mp
 import os
@@ -11,7 +28,7 @@ from torch import Tensor
 from tqdm import tqdm
 
 import dataloaders.utils as data_utils
-from dataloaders.conditional_loaders import EEGLoader
+from dataloaders.conditional_loaders import EEGLoader, get_word_from_filepath
 from dataloaders import ClassConditionalLoader
 from models import construct_model
 from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_directory
@@ -19,11 +36,11 @@ from utils import find_max_epoch, print_size, calc_diffusion_hyperparams, local_
 
 @torch.no_grad()
 def generate(
-    rank,
-    model,
+    rank:int,
     model_cfg:DictConfig,
     diffusion_cfg:DictConfig,
     dataset_cfg:DictConfig,
+    model:torch.nn.Module=None,
     name:str=None,
     ckpt_epoch:str="max",
     n_samples:int=1,
@@ -48,7 +65,7 @@ def generate(
 
     # Load model if not given
     if model is None:
-        model = load_model(model_cfg, local_path, conditional_signal is None)
+        model, ckpt_epoch = load_model(model_cfg, local_path, ckpt_epoch, conditional_signal is None)
 
     # Add checkpoint number to output directory
     output_directory = os.path.join(output_directory, str(ckpt_epoch))
@@ -94,8 +111,9 @@ def generate(
     ))
 
     # Save generated audio as WAV files to disk
+    conditional_signal_name = get_word_from_filepath(conditional_signal)
     for i in range(n_samples):
-        outfile = f'epoch{ckpt_epoch}_{n_samples*rank + i}.wav'
+        outfile = f'epoch{ckpt_epoch}_{conditional_signal_name}_{n_samples*rank + i}.wav'
         wavwrite(
             os.path.join(output_directory, outfile),
             dataset_cfg.sampling_rate,
@@ -148,7 +166,7 @@ def sampling(model, size, diffusion_hyperparams, condition=None):
     return x
 
 
-def load_model(model_cfg, local_path, unconditional: bool):
+def load_model(model_cfg: DictConfig, local_path: str, ckpt_epoch: int, unconditional: bool):
     model = construct_model(model_cfg).cuda()
     print_size(model)
     model.eval()
@@ -175,7 +193,7 @@ def load_model(model_cfg, local_path, unconditional: bool):
     except:
         raise Exception(f'No valid model found for epoch {ckpt_epoch} at path {ckpt_path}')
 
-    return model
+    return model, ckpt_epoch
 
 
 def load_conditional_input(conditional_signal: str, conditional_type: str, dataset_cfg: DictConfig) -> Tensor:
