@@ -75,7 +75,7 @@ def test_variants_class_conditional():
 
 def test_class_conditional_loader():
     conditional_loader = ClassConditionalLoader(words_file='/home/passch/data/HP_VariaNTS_intersection.txt')
-    print(conditional_loader('path/zu/deiner/mmudda/bed_timeass1.wav'))
+    print(conditional_loader('path/to/good/things/bed_timestretch1.wav'))
     print(conditional_loader('bed'))
     print(conditional_loader('boel'))
     print(conditional_loader('brief'))
@@ -87,4 +87,4 @@ def test_class_conditional_loader():
 
 
 if __name__=='__main__':
-    test_variants_brain()
+    test_class_conditional_loader()
