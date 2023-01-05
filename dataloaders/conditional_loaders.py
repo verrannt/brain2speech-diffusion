@@ -5,6 +5,7 @@ import re
 
 import numpy as np
 import torch
+from torch import Tensor
 
 import dataloaders.utils as utils
 
