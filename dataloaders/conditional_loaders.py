@@ -45,13 +45,16 @@ class ClassConditionalLoader:
         self.word_tokens = { words[i] : i for i in range(len(words))}
         self.num_classes = len(words)
 
-    def __call__(self, audio_file_path: str, **kwargs) -> LongTensor:
+    def __call__(self, audio_file_path: str, **kwargs) -> Tensor:
         word = get_word_from_filepath(audio_file_path)
         try:
             idx = self.word_tokens[word]
         except KeyError:
             raise ValueError(f"Unrecognized word: {word}")
-        return torch.LongTensor([idx])
+        out = torch.LongTensor([idx])
+        out = torch.nn.functional.one_hot(out, self.num_classes)
+        out = out.type(torch.float32)
+        return out
 
 
 class EEGLoader(ABC):
