@@ -29,10 +29,17 @@ def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_n
 
 class ClassConditionalLoader:
     """
-    Get one-hot encoded class labels based on words from a given file.
+    Load class conditional input vector for a given word. Returns a callable object that upon being called with a word
+    (or filepath containing a the word in the filename), returns a one-hot encoded class vector. The indexes of the
+    encoding are specified in a words file provided at initialization.
     """
 
-    def __init__(self, words_file) -> None:
+    def __init__(self, words_file: str) -> None:
+        """
+        Params:
+        ---
+        `words_file`: path to the file containing the words to index. Has to be comma-separated, without blank spaces.
+        """
         with open(words_file, 'r') as file:
             words = file.read().split(',')
         self.word_tokens = { words[i] : i for i in range(len(words))}
