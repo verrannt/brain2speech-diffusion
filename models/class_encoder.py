@@ -5,7 +5,7 @@ import torch.nn as nn
 
 """
 Input:
-[B, 1]
+[B, 1, N_CLASSES]
 
 Output:
 [B, C, L]
@@ -34,8 +34,5 @@ class ClassEncoder(nn.Module):
 
     def forward(self, x):
         x = self.embedding(x)
-
-        x = x.unsqueeze(1)
-
         x = self.projection(x)
         return x
