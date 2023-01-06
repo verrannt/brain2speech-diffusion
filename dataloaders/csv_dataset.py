@@ -1,9 +1,13 @@
-# Modified based on https://github.com/pytorch/audio/blob/master/torchaudio/datasets/speechcommands.py
-# and https://github.com/pytorch/audio/blob/master/torchaudio/datasets/speechcommands.py
-
+# -----------------------------------------------------------------------------
+#
+# Adapted from:
+#   https://github.com/pytorch/audio/blob/master/torchaudio/datasets/speechcommands.py
+#   https://github.com/albertfgu/diffwave-sashimi/blob/master/dataloaders/sc.py
+#
+# -----------------------------------------------------------------------------
 
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Union
 
 import torchaudio
 from torch.utils.data import Dataset
@@ -15,7 +19,36 @@ import dataloaders.utils as utils
 
 class CSVDataset(Dataset):
     """
-    Create a Dataset from a .csv file list of audio files.
+    Create a Dataset from a list of audio files stored as .csv file on disk. File must be present in `csv_path` as
+    `<subset>.csv`, e.g. `/data/user/train.csv`.
+
+    Parameters
+    ----------
+    csv_path: 
+        Path to the directory on disk where the .csv file is stored
+    
+    subset: 
+        One of "train", "val", "test". Which subset of the data to 
+        load. The chosen subset must be present as "<subset>.csv" in the
+        `csv_path` given as argument, e.g. "train.csv".
+    
+    audio_path: 
+        If given, this path is prepended to every filename in
+        the loaded .csv file.
+    
+    segment_length: 
+        Desired length of audio sequence (in sampled points). 
+        Any files shorter will be padded, any files longer will be cut to
+        this length.
+    
+    shuffle: 
+        Whether to shuffle the files read from the .csv file
+    
+    seed: 
+        Seed for the random number generator used for shuffling
+    
+    min_max_norm: 
+        Whether to scale the data to the range [-1, 1]
     """
 
     def __init__(
@@ -28,39 +61,7 @@ class CSVDataset(Dataset):
         seed: int = None,
         min_max_norm: bool = False,
         conditional_loader = None,
-    ):
-        """
-        Read files from .csv file on disk. File must be present in `csv_path` as
-        `subset.csv`, e.g. `/data/user/train.csv`.
-
-        Parameters
-        ----------
-        csv_path : 
-            Path to the directory on disk where the .csv file is stored
-        
-        subset : 
-            One of "train", "val", "test". Which subset of the data to 
-            load. The chosen subset must be present as "<subset>.csv" in the
-            `csv_path` given as argument, e.g. "train.csv".
-        
-        audio_path : 
-            If given, this path is prepended to every filename in
-            the loaded .csv file.
-        
-        segment_length : 
-            Desired length of audio sequence (in sampled points). 
-            Any files shorter will be padded, any files longer will be cut to
-            this length.
-        
-        shuffle : 
-            Whether to shuffle the files read from the .csv file
-        
-        seed : 
-            Seed for the random number generator used for shuffling
-        
-        min_max_norm : 
-            Whether to scale the data to the range [-1, 1]
-        """
+    ) -> None:
         self._path = Path(csv_path)
 
         rng = np.random.default_rng(seed)
@@ -88,14 +89,45 @@ class CSVDataset(Dataset):
 
         self.subset = subset
 
-    def __getitem__(self, n: int) -> Tuple[Tensor, int, str, Tensor]:
+    def __getitem__(self, n: int) -> Tuple[Tensor, int, Union[Tensor, str], Tensor]:
+        """
+        Load the `n`-th file from the dataset
+
+        Parameters
+        ----------
+        n:
+            The index at which to load from the internal list of files.
+
+        Returns
+        -------
+        The loaded audio, sampling rate, optional conditional signal and a loss mask. See `load_audio()` for details.
+
+        Raises
+        ------
+        IndexError:
+            if `n >= len(self._files)`
+        """
         file_path = self._files[n]
-        return self.load_audio(file_path, n)
+        return self.load_audio(file_path)
 
     def __len__(self) -> int:
         return len(self._files)
 
-    def load_audio(self, file_path: str, n: int = None) -> Tuple[Tensor, int, str, Tensor]:
+    def load_audio(self, file_path: str) -> Tuple[Tensor, int, Union[Tensor, str], Tensor]:
+        """
+        Load an audio file, given its path on disk. Also returns the audio's sampling rate, a matching conditional
+        input if `self.conditional_loader` is given, and the corresponding loss mask.
+
+        Parameters
+        ----------
+        file_path:
+            Path to the location of the audio file on disk
+
+        Returns
+        -------
+        A tuple of the audio waveform (`Tensor`), the sampling rate (`int`), the conditional signal (either a `Tensor`
+        if a conditional loader is given, or an empty `str` if not), and the loss mask (`Tensor`, same shape as audio).
+        """
         waveform, sample_rate = torchaudio.load(file_path)
 
         # Maybe perform min-max normalization

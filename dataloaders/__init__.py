@@ -1,9 +1,10 @@
-from random import shuffle
 from os.path import join
 from pathlib import Path
+from typing import Tuple, Optional
 
-import torch
+from omegaconf import DictConfig
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import DataLoader
 
 from .csv_dataset import CSVDataset
 from .utils import *
@@ -13,13 +14,71 @@ from .conditional_loaders import EEGRandomLoader, EEGExactLoader, ClassCondition
 SHUFFLING_SEED = 1144
 
 
-def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
+def dataloader(
+    dataset_cfg: DictConfig, 
+    batch_size: int, 
+    is_distributed: bool, 
+    unconditional: bool = True, 
+    uses_test_set: bool = False
+) -> Tuple[DataLoader, DataLoader, Optional[DataLoader]]:
+    """
+    Initialize dataloaders with given configuration options.
+
+    Note that the dataset objects used by the dataloaders consist of two parts: the dataset itself, which loads audio 
+    files from disk, and a conditional loader which loads corresponding conditional inputs, in case conditional training
+    is enabled. The dataset object is the same for all datasets, but the conditional loaders vary:
+
+    Dataset 1: VariaNTS (conditional or unconditional)
+        The standard VariaNTS words dataset. Can be loaded unconditionally (just the audio data) or conditionally, in
+        which case the conditional input is a one-hot encoded class vector obtained from the `ClassConditionalLoader`.
+
+    Dataset 2: VariaNTS-Brain (always conditional)
+        The VariaNTS word dataset, but paired with ECoG brain recordings. Since there is no 1-to-1 match between the
+        two, for each word obtained from the VariaNTS dataset, a random ECoG recording corresponding to that word will
+        be loaded. This is done using the `EEGRandomLoader`.
+
+    Dataset 3: Brain-Conditional (always conditional)
+        The actual ECoG recording dataset which audio files matching exactly the brain recordings. For this dataset, 
+        the `EEGExactLoader` is used which fetches the correct ECoG recording for a given audio recording.
+
+    Parameters
+    ----------
+    dataset_cfg:
+        The configuration options for the dataset, loaded from a Hydra config file.
+    batch_size:
+        How many datapoints to yield at each iteration of the dataloader
+    is_distributed:
+        Whether this is a distributed training run or not. If `True`, training data will be subset such that the
+        different GPUs get access to different parts of the dataset only.
+    unconditional:
+        Whether the model to be trained is a conditional or unconditional model. This determines how data is loaded for
+        some datasets, or may cause an `AssertionError` if a dataset is incompatible with it.
+    uses_test_set:
+        Whether a test split is provided and a test dataloader should be created.
+    
+    Returns
+    -------
+    A tuple consisting of the train dataloader, the validation dataloader, and optionally the test dataloader if the 
+    test set is enabled.
+
+    Raises
+    ------
+    AssertionError
+        if `unconditional==False` but the dataset name denoted in the `dataset_cfg` is 'variants-brain' or 
+        'brain-conditional', since both of these datasets require a conditional model.
+    AssertionError
+        if the dataset name denoted in the `dataset_cfg` is 'variants-brain', but the `dataset_cfg` does not have the 
+        'eeg_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
+        and the ECoG recordings, so a separate train/val split has to be provided for the ECoG recordings.
+    """
+    
     dataset_name = dataset_cfg.pop("_name_")
 
-    valset, testset = None, None
+    testset = None
 
     # Convert segment length from milliseconds to frames
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
+    # For datasets using conditional brain inputs, need to also do processing for the ECoG files
     if not unconditional and 'brain' in dataset_name:
         segment_length_eeg = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
         eeg_path = Path(dataset_cfg.eeg_path)
@@ -65,40 +124,40 @@ def dataloader(dataset_cfg, batch_size, num_gpus, unconditional=True):
         segment_length = segment_length_audio,
         seed=SHUFFLING_SEED,
         conditional_loader=conditional_loader)
+    
+    if uses_test_set:
+        testset = CSVDataset(
+            csv_path = dataset_cfg.splits_path,
+            subset = "test",
+            audio_path = dataset_cfg.audio_path,
+            segment_length = segment_length_audio,
+            seed=SHUFFLING_SEED,
+            conditional_loader=conditional_loader)
 
 
-    # Use distributed sampling for the train set. Note that we do not use
-    # it for validation and testing set, since we have currently no way of
-    # collecting the results from all GPUs, and will therefore only run them
-    # on the first GPU.
-    train_sampler = DistributedSampler(trainset) if num_gpus > 1 else None
+    # Use distributed sampling for the train set. Note that we do not use it for validation and testing set, since those 
+    # are only run on the first GPU.
+    train_sampler = DistributedSampler(trainset) if is_distributed else None
 
-    trainloader = torch.utils.data.DataLoader(
+    trainloader = DataLoader(
         trainset,
         batch_size=batch_size,
         sampler=train_sampler,
         num_workers=4,
         pin_memory=False,
         drop_last=True,
-        # Using shuffle=True throws ValueError on Snellius when using
-        # distributed training:
-        # "sampler option is mutually exclusive with shuffle"
-        # shuffle=True,
     )
 
-    if valset:
-        valloader = torch.utils.data.DataLoader(
-            valset,
-            batch_size=batch_size,
-            num_workers=4,
-            pin_memory=False,
-            drop_last=True,
-        )
-    else:
-        valloader = None
+    valloader = DataLoader(
+        valset,
+        batch_size=batch_size,
+        num_workers=4,
+        pin_memory=False,
+        drop_last=True,
+    )
 
-    if testset:
-        testloader = torch.utils.data.DataLoader(
+    if uses_test_set:
+        testloader = DataLoader(
             testset,
             batch_size=batch_size,
             num_workers=4,
