@@ -8,10 +8,11 @@ from torch import Tensor
 from tqdm import tqdm
 import wandb
 
-from generate import generate
 from dataloaders import dataloader
 from distributed_util import apply_gradient_allreduce, reduce_tensor
+from generate import generate
 from models import construct_model
+from sampler import Sampler
 import utils
 
 class Learner():
@@ -52,7 +53,7 @@ class Learner():
         self, 
         cfg: DictConfig,
         num_gpus: int,
-        is_master: bool,
+        rank: int,
         ckpt_epoch: Union[int, str],
         n_epochs: int,
         epochs_per_ckpt: int,
@@ -81,9 +82,15 @@ class Learner():
         self.dataset_cfg = cfg.dataset
         self.generate_cfg = cfg.generate
 
+        # Overwrite name for generation
+        self.generate_cfg.name = self.name
+
+        # Used to make sure that only one instance reports training metrics
+        self.is_master = rank == 0
+
         # Since we don't collect metrics from all GPUs in the distributed setting, 
         # only the master instance should log to W&B
-        if is_master:
+        if self.is_master:
             self.wandb_cfg = cfg.wandb
             # Use the name of the training run also as the run name in W&B
             self.wandb_cfg.name = self.name
@@ -93,8 +100,7 @@ class Learner():
         # Update the paths in the dataset config with the base path
         self.dataset_cfg = utils.prepend_data_base_dir(self.dataset_cfg)
 
-        # Used to make sure that only one instance reports training metrics
-        self.is_master = is_master
+        self.rank = rank
 
         self.num_gpus = num_gpus
 
@@ -108,13 +114,20 @@ class Learner():
         if self.is_master:
             wandb.init(**self.wandb_cfg, config=self.config_dict)
 
-        _, checkpoint_directory = utils.local_directory(self.name, self.model_cfg, self.diffusion_cfg, self.dataset_cfg, 'checkpoint')
+        _, checkpoint_directory = utils.create_output_directory(
+            self.name, self.model_cfg, self.diffusion_cfg, self.dataset_cfg, 'checkpoint')
 
         # Map diffusion hyperparameters to GPU
         # Gives dictionary of all diffusion hyperparameters
         self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(
-            **self.diffusion_cfg, 
-            fast=False
+            **self.diffusion_cfg, fast=False)
+
+        self.sampler = Sampler(
+            rank=self.rank,
+            diffusion_cfg=self.diffusion_cfg,
+            dataset_cfg=self.dataset_cfg,
+            name=self.name,
+            **self.generate_cfg,
         )
 
         # Initialize data loader. Val and test loaders might be None if not specified
@@ -387,7 +400,7 @@ class Learner():
         print('Created model checkpoint')
 
 
-    def generate_samples(self, epoch):
+    def generate_samples(self, epoch: int) -> None:
         """
         Run generation (inference) using the current model state, and save the results to disk as well as to W&B.
 
@@ -396,30 +409,23 @@ class Learner():
         epoch:
             The current epoch in training, which should be used for the save name.
         """
-        # Generate samples
-        self.generate_cfg["ckpt_epoch"] = epoch
-        
-        samples = generate( 
-            self.rank,
+        # Generate samples        
+        samples = self.sampler.run( 
+            epoch,
             self.model_cfg,
-            self.diffusion_cfg,
-            self.dataset_cfg,
-            model=self.model,
-            name=self.name,
-            **self.generate_cfg,
+            self.model,
         )
 
+        # Log generated samples to W&B
         samples = [
             wandb.Audio(
                 sample.squeeze().cpu(), 
                 sample_rate = self.dataset_cfg.sampling_rate
             ) for sample in samples
         ]
-
         wandb.log(
             {'inference/audio': samples, 'epoch': epoch},
         )
-
 
 
     def compute_loss(self, audio: Tensor, conditional_input: Optional[Tensor] = None, mask: Optional[Tensor] = None):

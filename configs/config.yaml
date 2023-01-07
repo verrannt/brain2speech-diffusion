@@ -3,8 +3,8 @@ defaults:
   - experiment: variants
 
 train: # Not used in generate.py
-  name: Dummy-Name # Name of experiment (prefix of experiment name)
-                   # This will also be used as the W&B run name
+  name: null # Name of experiment (prefix of experiment name)
+             # This will also be used as the W&B run name
   ckpt_epoch: max
   epochs_per_ckpt: 5
   iters_per_logging: 10
@@ -13,10 +13,12 @@ train: # Not used in generate.py
   batch_size_per_gpu: 8
 
 generate:
+  name: null # Only relevant when using generate.py
   ckpt_epoch: max # Which checkpoint to use; assign a number or "max". Is ignored when sampling during training
   n_samples: 8 # Number of utterances to be generated (per GPU)
   batch_size: null # Number of samples to generate at once per GPU. null means max (equal to samples_per_gpu)
-  # Path to conditional input on disk in brain-conditional setting, or word class in class-conditional setting. Can be null in unconditional setting.
+  # Path to conditional input on disk in brain-conditional setting, or word class in class-conditional setting. 
+  # Can be null in unconditional setting.
   conditional_signal: /home/passch/data/HP1_EEG_conditional/denoised_fixed-transcript_cleaned/dag7.npy 
   conditional_type: brain # Can be "brain" for ECoG input or "class" for class-conditional sampling
 
