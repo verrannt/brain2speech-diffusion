@@ -1,6 +1,10 @@
-import numpy as np
 import os
+from typing import List, Tuple, Union, Dict, Any
+
+import numpy as np
+from omegaconf import DictConfig
 import torch
+from torch import Tensor
 
 class MaskedMSELoss():
     """
@@ -42,34 +46,20 @@ class MaskedMSELoss():
             # taking the mean
             return loss_val.mean()
 
-def flatten(v):
+
+def find_max_epoch(path: str) -> int:
     """
-    Flatten a list of lists/tuples
+    Find maximum epoch/iteration in path, formatted as ${n_epoch}.pkl, e.g. 100.pkl
+
+    Parameters
+    ----------
+    path: 
+        Checkpoint path
+
+    Returns
+    -------
+    The highest epoch checkpoint found, or -1 if there is no (valid) checkpoint.
     """
-
-    return [x for y in v for x in y]
-
-
-def rescale(x):
-    """
-    Rescale a tensor to 0-1
-    """
-
-    return (x - x.min()) / (x.max() - x.min())
-
-
-def find_max_epoch(path):
-    """
-    Find maximum epoch/iteration in path, formatted ${n_epoch}.pkl
-    E.g. 100.pkl
-
-    Parameters:
-    path (str): checkpoint path
-
-    Returns:
-    maximum iteration, -1 if there is no (valid) checkpoint
-    """
-
     files = os.listdir(path)
     epoch = -1
     for f in files:
@@ -83,9 +73,16 @@ def find_max_epoch(path):
     return epoch
 
 
-def print_size(net, verbose=False):
+def print_size(net: torch.nn.Module, verbose: bool = False) -> None:
     """
     Print the number of parameters of a network
+
+    Parameters
+    ----------
+    net:
+        The PyTorch network
+    verbose:
+        Whether to print the parameters of each of the network's layers
     """
 
     if net is not None and isinstance(net, torch.nn.Module):
@@ -101,30 +98,65 @@ def print_size(net, verbose=False):
             net.__class__.__name__, params / 1e6), flush=True)
 
 
+def create_output_directory(
+    name: str, 
+    model_cfg: DictConfig, 
+    diffusion_cfg: DictConfig, 
+    dataset_cfg: DictConfig, 
+    sub_directory: str
+) -> Tuple[str, str]:
+    """
+    Create the experiment output directory on disk.
 
-def local_directory(name, model_cfg, diffusion_cfg, dataset_cfg, output_directory):
-    # Generate experiment (local) path
+    Parameters
+    ----------
+    name:
+        Name of the experiment
+    model_cfg:
+        Model configuration dict
+    diffusion_cfg:
+        Configuration dict of the diffusion process (i.e. diffusion parameters)
+    dataset_cfg:
+        Configuration dict of the dataset
+    sub_directory:
+        The specific output directory needed. Usually 'checkpoints' for model checkpoints or 'waveforms' for generated
+        samples.
+
+    Returns
+    -------
+    Tuple containing the formatted experiment name and the output directory
+    """
+    # Get formatted experiment name with details about the model, diffusion process, and dataset
     model_name = f"h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
-    diffusion_name = f"_T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
+    diffusion_name = f"T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
     if model_cfg["unconditional"]:
-        data_name = "_uncond"
+        data_name = "uncond"
     else:
-        data_name = f"_L{dataset_cfg['segment_length']}_cond"
-    local_path = model_name + diffusion_name + data_name
+        data_name = f"L{dataset_cfg['segment_length']}_cond"
+    experiment_name = f'{name}_{model_name}_{diffusion_name}_{data_name}'
 
-    if not (name is None or name == ""):
-        local_path = name + "_" + local_path
-
-    # Get shared output_directory ready
-    output_directory = os.path.join('exp', local_path, output_directory)
+    # Create output directory if it doesn't exist
+    output_directory = os.path.join('exp', experiment_name, sub_directory)
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
         
-    return local_path, output_directory
+    return experiment_name, output_directory
 
 
-def prepend_data_base_dir(dataset_cfg):
+def prepend_data_base_dir(dataset_cfg: DictConfig) -> DictConfig:
+    """
+    Prepend the base path of where all data is stored on disk to the different data paths that are in the `dataset_cfg`.
+
+    Parameters
+    ----------
+    dataset_cfg:
+        The dataset configuration dict to modify
+
+    Returns
+    -------
+    The modified dataset configuration dict
+    """
     dataset_cfg.audio_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.audio_path)
     dataset_cfg.splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.splits_path)
     if 'eeg_path' in dataset_cfg:
@@ -134,36 +166,65 @@ def prepend_data_base_dir(dataset_cfg):
     return dataset_cfg
 
 
-# Utilities for diffusion models
-
-def calc_diffusion_hyperparams(T, beta_0, beta_T, beta=None, fast=False):
+def calc_diffusion_hyperparams(
+    T: int, 
+    beta_0: float, 
+    beta_T: float, 
+    beta: List[float] = None, 
+    fast: bool = False
+) -> Dict[str, Any]:
     """
-    Compute diffusion process hyperparameters
+    Compute hyperparameters of the diffusion process and move them onto the current GPU.
 
-    Parameters:
-    T (int):                    number of diffusion steps
-    beta_0 and beta_T (float):  beta schedule start/end value,
-                                where any beta_t in the middle is linearly interpolated
+    Parameters
+    ----------
+    T:
+        number of diffusion steps
+    beta_0:
+        Starting value of the beta schedule
+    beta_T:
+        Ending value of the beta schedule
+    beta:
+        A full beta schedule that will be used instead of linearly interpolating between beta_0 and beta_T if
+        `fast==True`
+    fast:
+        Whether to use the schedule defined in `beta`
 
-    Returns:
-    a dictionary of diffusion hyperparameters including:
-        T (int), Beta/Alpha/Alpha_bar/Sigma (torch.tensor on cpu, shape=(T, ))
-        These cpu tensors are changed to cuda tensors on each individual gpu
+    Returns
+    -------
+    A dictionary of diffusion hyperparameters including:
+        T (int), Beta, Alpha, and Alpha_bar (torch GPU Tensors, shape=[T,]), and Sigma (torch CPU Tensor, shape=[T, ])
+    
+    Raises
+    ------
+    ValueError:
+        If `fast==True` but no beta schedule is provided
     """
 
-    if fast and beta is not None:
+    if fast:
+        if beta is None:
+            raise ValueError("The fast option is selected but no full beta schedule is given.")
         Beta = torch.tensor(beta)
         T = len(beta)
     else:
         Beta = torch.linspace(beta_0, beta_T, T)
+
     Alpha = 1 - Beta
     Alpha_bar = Alpha + 0
     Beta_tilde = Beta + 0
+    
     for t in range(1, T):
         Alpha_bar[t] *= Alpha_bar[t-1]  # \bar{\alpha}_t = \prod_{s=1}^t \alpha_s
         Beta_tilde[t] *= (1-Alpha_bar[t-1]) / (1-Alpha_bar[t])  # \tilde{\beta}_t = \beta_t * (1-\bar{\alpha}_{t-1}) / (1-\bar{\alpha}_t)
+    
     Sigma = torch.sqrt(Beta_tilde)  # \sigma_t^2  = \tilde{\beta}_t
 
-    _dh = {}
-    _dh["T"], _dh["Beta"], _dh["Alpha"], _dh["Alpha_bar"], _dh["Sigma"] = T, Beta.cuda(), Alpha.cuda(), Alpha_bar.cuda(), Sigma
+    _dh = {
+        "T": T,
+        "Beta": Beta.cuda(),
+        "Alpha": Alpha.cuda(),
+        "Alpha_bar": Alpha_bar.cuda(),
+        "Sigma": Sigma,
+    }
+
     return _dh
