@@ -1,4 +1,103 @@
-# DiffWave Unconditional Dutch
+# Diffusion Model for Brain-Conditional Speech Generation
+
+<img width="300" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png">
+
+<!-- ![Model Architecture](images/Speech Decoding from Brain.png) -->
+
+This repository proposes a diffusion-based generative model for the synthesis of natural speech from ECoG recordings of human brain activity. It supports pretraining of unconditional or class-conditional speech generators with consecutive fine-tuning on brain recordings, or fully end-to-end training on brain recordings. The diffusion model used is [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf), with different encoder models for the encoding of brain activity inputs or class labels.
+
+## More explanations...
+
+## Table of Contents
+* [Data](#data)
+* [Usage](#usage)
+  * [Training](#training)
+  * [Generating](#generating)
+  * [Pretrained Models](#pretrained-models)
+* [Acknowledgements](#acknowledgements)
+* [References](#references)
+
+
+
+
+## Usage
+
+### Training
+
+All training functionality is implemented in the `Learner` class (see `learner.py`). To train a model, call the `train.py` script, which loads the configurations and runs the `Learner`, and allows for single-GPU or distributed training.
+
+#### Configurations
+
+There are five important configuration paradigms: the model, the dataset, the diffusion process, and the training and generation controls.
+
+The first three are collected in *experiments* for easy reproducibility. The respective configurations can be found in the `configs/experiment/` directory. Each experiment config needs to link to a model and dataset config (separately defined in the `configs/model/` and `configs/dataset/` directories, respectively) as well as define the parameters for the diffusion process. It is best to think of an experiment as a recipe, and the dataset, model, and diffusion parameters as the ingredients: the different experiments mix the ingredients differently. If you want to define a new experiment, you can reuse ingredients or define new ones.
+
+All of the default config values that will be loaded when calling the `train.py` script are defined in `configs/config.yaml`. To overwrite values, simply pass them as command line arguments. E.g. to change the experiment, pass `experiment=my_exp_config`, or to change the name of the training run, pass `train.name=Another-Run-v3`.
+
+**Config options**
+* `name`: The unique name of the experiment you're running, e.g. 'VariaNTS-Pretraining-v3'. This will also be used as the run name in W&B, should logging to W&B be enabled.
+* `ckpt_epoch`: Which checkpoint to resume training from. If `ckpt_epoch=max`, will find the latest checkpoint, if `ckpt_iter=-1` will train from scratch. For any other positive integer, will try to load that exact checkpoint.
+* `epochs_per_ckpt`: How many epoch to train between saving a model checkpoint to disk. This also controls the frequency of generating sample outputs.
+* `iters_per_logging`: How many batches to feed in the train loop between logging of training metrics.
+* `n_epochs`: The total number of epochs to train the model for
+* `learning_rate`: The 
+* `batch_size_per_gpu`: 8
+
+#### Logging
+
+The repository implements logging via [Weights & Biases](https://wandb.ai/), as well as the storage of model artefacts and sample outputs. There are additional configuration options to control the W&B logger:
+* `wandb.mode`: `disabled` by default. Pass `wandb.mode=online` to activate logging to W&B. This will prompt you to login to W&B if you haven't done so.
+* To continue logging to a previously tracked run, fetch the run's ID from your project page on W&B (it's in the URL, *not* the run's name) and pass `wandb.id=<run-id>` as well as `+wandb.resume=true`.
+
+> **Note:** Before you start logging, you need to setup a project on W&B and change the `project` and `entity` entries in the `wandb` section of the `configs/config.yaml` file accordingly. This can be done once in your local copy of the repository, such that you don't need to pass it every time when calling the train script.
+
+#### Debugging
+
+If you want to quickly test code, you can run smaller versions of a dataset for debugging:
+* Pass `dataset.segment_length=100` to cut all audio segments to 100 ms
+* When using VariaNTS words as audio data, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch (assuming you have downloaded the provided datasplits, else you may create your own small subset)
+* Pass `experiment.diffusion.T=20` to reduce the number of diffusion steps in generation
+
+### Generating
+
+There is a dedicated class `Sampler` in `sampler.py` that handles generation. It needs to be provided with a diffusion and dataset config and the appropriate generation parameters on initialization, and can then be used to run the full diffusion process to generate samples from noise (both conditional and unconditional).
+
+In this repository, there are two places where generation takes place:
+1. During training: The `Sampler` is initialized at the beginning of training and repeatedly runs on the updated model every `epochs_per_ckpt` epochs.
+2. Using the `generate.py` script: When training is finished and a model is obtained, this script can be run individually to obtain more outputs from the model. 
+
+Generation during training happens automatically (see `learner.py` for the implementation). Below is a description of how to run the `generate.py` script:
+
+1. Navigate to the directory in which your `exp` output directory resides, as the script uses relative paths for model loading and output saving.
+2. Call the script with the appropriate configuration options (see below). Like for training, config defaults are loaded from the `configs/config.yaml` file, and can be overwritten with command line arguments.
+
+**Config options**
+
+All configuration options can be found in the `configs/config.yaml` file's `generate` section, but the important ones (i.e. the ones changed most frequently) are listed below:
+
+* `experiment`: Name of the experiment config that was used during the training run. This will load the required diffusion, dataset and model config
+* `name`: Name of the training run that created the trained model that should be used
+* `conditional_type`: Either `class` for class conditional sampling, or `brain` for brain conditional sampling. If the model is unconditional, can be null, or will otherwise be ignored.
+* `conditional_signal`: The actual conditional input signal to use in case of conditional sampling. If the model is a class-conditional model, it suffices to simply state the word to be generated here (e.g. `dag`). If it is a brain-conditional model, this should be a full (absolute) file path to the ECoG recording file on disk (e.g. `/home/user/path/to/recording/dag1.npy`).
+
+> **Note:** Since the `experiment` config is a top-level config, it suffices to append `experiment=...` as argument when calling the script. All other of the above mentioned options are options specifically for generation, so 'generate' has to be added to the argument description, e.g.: `generate.name=... generate.conditional_type=...` et cetera. This is due to the way that Hydra layers config options hierarchically.
+
+#### Example
+```s
+python diffwave/generate.py experiment=my-custom-experiment generate.name=Example-Model-v2 generate.conditional_type=class generate.conditional_signal=dag
+```
+
+### Pretrained Models
+
+## Acknowledgements
+This codebase was originally forked from the [DiffWave-SaShiMi repository by albertfgu](https://github.com/albertfgu/diffwave-sashimi), and some inspiration was taken from [LMNT's implementation of DiffWave](https://github.com/lmnt-com/diffwave), specifically how the model code was structured.
+
+## References
+* [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf)
+
+
+
+<!-- # DiffWave Unconditional Dutch
 
 > :warning: **Disclaimer:**
 >
@@ -7,12 +106,6 @@
 > It's in development and changes are not well documented. I do not recommend working with this repository in its current state, but if you are interested in doing so anyways, please reach out to me before.
 >
 > The rest of this Readme is the original one from albertfgu's repository.
-
-Quick note on running smaller versions of a dataset for debugging:
-
-* Pass `dataset.segment_length=100` to cut all audio segments to 100 ms
-* For VariaNTS dataset, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch
-* Pass `experiment.diffusion.T=20` to reduce number of diffusion steps in generation
 
 ## :point_down: Original ReadMe
 
@@ -285,10 +378,4 @@ python train.py model=wavenet_small train.batch_size_per_gpu=4 generate.n_sample
 ## Vocoders
 The parent fork has a few pretrained LJSpeech vocoder models. Because of the WaveNet bug, we recommend not using these and simply training from scratch from the `master` branch; these vocoder models are small and faster to train than the unconditional SC09 models.
 Feel free to file an issue for help with configs.
-<!--
-- [channel=64 model](https://github.com/philsyn/DiffWave-Vocoder/tree/master/exp/ch64_T50_betaT0.05/logs/checkpoint)
-- [channel=64 samples](https://github.com/philsyn/DiffWave-Vocoder/tree/master/exp/ch64_T50_betaT0.05/speeches)
-- [channel=128 model](https://github.com/philsyn/DiffWave-Vocoder/tree/master/exp/ch128_T200_betaT0.02/logs/checkpoint)
-- [channel=128 samples](https://github.com/philsyn/DiffWave-Vocoder/tree/master/exp/ch128_T200_betaT0.02/speeches)
--->
-
+ -->
