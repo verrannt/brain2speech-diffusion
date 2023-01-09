@@ -1,4 +1,4 @@
-# 🧠🔊 **Brain2Speech Diffusion** - Speech Generation from Brain Activity using Diffusion Models
+# 🧠🔊 Brain2Speech Diffusion: Speech Generation from Brain Activity using Diffusion Models
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Weights & Biases](https://img.shields.io/badge/Weights_&_Biases-FFBE00?logo=WeightsAndBiases&logoColor=white)](https://wandb.ai/pascalschroeder/brain2speech-diffusion)
@@ -110,7 +110,7 @@ This codebase was originally forked from the [DiffWave-SaShiMi repository by alb
 * [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf)
 
 ---
-[🔝 Back to Top](#🧠🔊-brain2speech-diffusion---speech-generation-from-brain-activity-using-diffusion-models)
+[🔝 Back to Top](#-brain2speech-diffusion-speech-generation-from-brain-activity-using-diffusion-models)
 
 <!-- # DiffWave Unconditional Dutch
 
