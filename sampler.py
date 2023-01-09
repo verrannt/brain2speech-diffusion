@@ -52,7 +52,7 @@ class Sampler:
         rank: int,
         diffusion_cfg: DictConfig,
         dataset_cfg: DictConfig,
-        name: str = None,
+        name: str,
         n_samples: int = 1,
         batch_size: int = None,
         conditional_signal: str = None,
@@ -70,20 +70,19 @@ class Sampler:
             "The type of conditional input can only be 'brain' or 'class'"
         self.conditional_type = conditional_type
 
-        if self.rank is not None:
-            torch.cuda.set_device(self.rank % torch.cuda.device_count())
+        torch.cuda.set_device(self.rank % torch.cuda.device_count())
 
         if batch_size is None:
             self.batch_size = self.n_samples
         assert self.n_samples % self.batch_size == 0
 
         # Map diffusion hyperparameters to GPU
-        diffusion_hyperparams = utils.calc_diffusion_hyperparams(**self.diffusion_cfg)
+        self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(**self.diffusion_cfg)
 
         self.model = None
 
     @torch.no_grad()
-    def run(self, ckpt_epoch: Union[str, int], model_cfg: DictConfig, model: torch.nn.Module) -> None:
+    def run(self, ckpt_epoch: Union[str, int], model_cfg: DictConfig, model: torch.nn.Module = None) -> None:
         print("\nGenerating:")
     
         # Get output directory for waveforms for this run
@@ -138,9 +137,12 @@ class Sampler:
         ))
 
         # Save generated audio as WAV files to disk
-        conditional_signal_name = get_word_from_filepath(self.conditional_signal)
+        
+        # Get the word from filepath, but do not remove numbering: numbering is only there in the brain-conditional case
+        # and is relevant for telling us which ECoG recording was used.
+        conditional_signal_name = get_word_from_filepath(self.conditional_signal, uses_numbering=False)
         for i in range(self.n_samples):
-            outfile = f'epoch{ckpt_epoch}_{conditional_signal_name}_{self.n_samples*self.rank + i}.wav'
+            outfile = f'{conditional_signal_name}_{self.n_samples*self.rank + i}.wav'
             wavwrite(
                 os.path.join(waveform_directory, outfile),
                 self.dataset_cfg.sampling_rate,
