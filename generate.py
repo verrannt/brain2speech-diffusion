@@ -35,7 +35,6 @@ def generate(
         rank=rank,
         diffusion_cfg=diffusion_cfg,
         dataset_cfg=dataset_cfg,
-
         **generate_cfg,
     )
     sampler.run(ckpt_epoch, model_cfg)
