@@ -1,6 +1,8 @@
-# Diffusion Model for Brain-Conditional Speech Generation
+# 🧠🔊 Brain2Speech Diffusion: Speech Generation from Brain Activity using Diffusion Models
 
-<img width="300" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png">
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<p align="center"><img width="300" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png?raw=true"></p>
 
 <!-- ![Model Architecture](images/Speech Decoding from Brain.png) -->
 
