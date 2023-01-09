@@ -1,12 +1,14 @@
-# 🧠🔊 Brain2Speech Diffusion: Speech Generation from Brain Activity using Diffusion Models
+# 🧠🔊 **Brain2Speech Diffusion** - Speech Generation from Brain Activity using Diffusion Models
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Weights & Biases](https://img.shields.io/badge/Weights_&_Biases-FFBE00?logo=WeightsAndBiases&logoColor=white)](https://wandb.ai/pascalschroeder/brain2speech-diffusion)
 
-<p align="center"><img width="300" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png?raw=true"></p>
-
-<!-- ![Model Architecture](images/Speech Decoding from Brain.png) -->
 
 This repository proposes a diffusion-based generative model for the synthesis of natural speech from ECoG recordings of human brain activity. It supports pretraining of unconditional or class-conditional speech generators with consecutive fine-tuning on brain recordings, or fully end-to-end training on brain recordings. The diffusion model used is [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf), with different encoder models for the encoding of brain activity inputs or class labels.
+
+<p align="center">
+<img width="400" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png?raw=true">
+</p>
 
 ## More explanations...
 
@@ -32,10 +34,15 @@ All training functionality is implemented in the `Learner` class (see `learner.p
 
 There are five important configuration paradigms: the model, the dataset, the diffusion process, and the training and generation controls.
 
-The first three are collected in *experiments* for easy reproducibility. The respective configurations can be found in the `configs/experiment/` directory. Each experiment config needs to link to a model and dataset config (separately defined in the `configs/model/` and `configs/dataset/` directories, respectively) as well as define the parameters for the diffusion process. It is best to think of an experiment as a recipe, and the dataset, model, and diffusion parameters as the ingredients: the different experiments mix the ingredients differently. If you want to define a new experiment, you can reuse ingredients or define new ones.
+The first three are collected in *experiments* for easy reproducibility. The respective configurations can be found in the `configs/experiment/` directory. Each experiment config needs to link to a model and dataset config (separately defined in the `configs/model/` and `configs/dataset/` directories, respectively) as well as define the parameters for the diffusion process. It is best to think of an experiment as a recipe, and the dataset, model, and diffusion parameters as the ingredients, i.e. ingredients are reused between experiments, but combined differently. If you want to define a new experiment, you can reuse ingredients or define new ones.
 
-All of the default config values that will be loaded when calling the `train.py` script are defined in `configs/config.yaml`. To overwrite values, simply pass them as command line arguments. E.g. to change the experiment, pass `experiment=my_exp_config`, or to change the name of the training run, pass `train.name=Another-Run-v3`.
+All of the default config values that will be loaded when calling the `train.py` script are defined in `configs/config.yaml`, with explanations about their effect. To overwrite values, simply pass them as command line arguments. For example, to change the experiment, pass `experiment=my_exp_config`, or to change the name of the training run, pass `train.name=Another-Run-v3`.
 
+> **Note:** Hydra uses a hierarchical configuration system. This means that you need to prepend the commandline argument with the appropriate section name, e.g. `train.ckpt_epoch=300` or `generate.n_samples=6`. 
+>
+> **But**, since an 'experiment' is just a collection of configs, you must not do e.g. `experiment.diffusion.T=20`, but instead only `diffusion.T=20`. Same goes for model and dataset configs.
+
+<!-- 
 **Config options**
 * `name`: The unique name of the experiment you're running, e.g. 'VariaNTS-Pretraining-v3'. This will also be used as the run name in W&B, should logging to W&B be enabled.
 * `ckpt_epoch`: Which checkpoint to resume training from. If `ckpt_epoch=max`, will find the latest checkpoint, if `ckpt_iter=-1` will train from scratch. For any other positive integer, will try to load that exact checkpoint.
@@ -43,22 +50,27 @@ All of the default config values that will be loaded when calling the `train.py`
 * `iters_per_logging`: How many batches to feed in the train loop between logging of training metrics.
 * `n_epochs`: The total number of epochs to train the model for
 * `learning_rate`: The 
-* `batch_size_per_gpu`: 8
+* `batch_size_per_gpu`: 8 -->
 
 #### Logging
 
-The repository implements logging via [Weights & Biases](https://wandb.ai/), as well as the storage of model artefacts and sample outputs. There are additional configuration options to control the W&B logger:
-* `wandb.mode`: `disabled` by default. Pass `wandb.mode=online` to activate logging to W&B. This will prompt you to login to W&B if you haven't done so.
-* To continue logging to a previously tracked run, fetch the run's ID from your project page on W&B (it's in the URL, *not* the run's name) and pass `wandb.id=<run-id>` as well as `+wandb.resume=true`.
+The repository implements logging via [Weights & Biases](https://wandb.ai/), as well as the storage of model artefacts and sample outputs. 
 
-> **Note:** Before you start logging, you need to setup a project on W&B and change the `project` and `entity` entries in the `wandb` section of the `configs/config.yaml` file accordingly. This can be done once in your local copy of the repository, such that you don't need to pass it every time when calling the train script.
+Before you start logging, you need to:
+1. Setup a project on W&B,
+2. Login to W&B in you terminal, and
+2. Change the `project` and `entity` entries in the `wandb` section of the `configs/config.yaml` file accordingly. This can be done once in your local copy of the repository, such that you don't need to pass it every time when calling the train script.
+
+There are additional configuration options to control the W&B logger:
+* `wandb.mode`: `disabled` by default. Pass `wandb.mode=online` to activate logging to W&B. This will prompt you to login to W&B if you haven't done so.
+* To continue logging to a previously tracked run, fetch the run's ID from your project page on W&B (it's in the URL, *not* the run's name) and pass `wandb.id=<run-id>` as well as `+wandb.resume=true` (note the leading '+' sign).
 
 #### Debugging
 
 If you want to quickly test code, you can run smaller versions of a dataset for debugging:
 * Pass `dataset.segment_length=100` to cut all audio segments to 100 ms
 * When using VariaNTS words as audio data, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch (assuming you have downloaded the provided datasplits, else you may create your own small subset)
-* Pass `experiment.diffusion.T=20` to reduce the number of diffusion steps in generation
+* Pass `diffusion.T=20` to reduce the number of diffusion steps in generation
 
 ### Generating
 
@@ -73,7 +85,7 @@ Generation during training happens automatically (see `learner.py` for the imple
 1. Navigate to the directory in which your `exp` output directory resides, as the script uses relative paths for model loading and output saving.
 2. Call the script with the appropriate configuration options (see below). Like for training, config defaults are loaded from the `configs/config.yaml` file, and can be overwritten with command line arguments.
 
-**Config options**
+#### Config options
 
 All configuration options can be found in the `configs/config.yaml` file's `generate` section, but the important ones (i.e. the ones changed most frequently) are listed below:
 
@@ -82,7 +94,7 @@ All configuration options can be found in the `configs/config.yaml` file's `gene
 * `conditional_type`: Either `class` for class conditional sampling, or `brain` for brain conditional sampling. If the model is unconditional, can be null, or will otherwise be ignored.
 * `conditional_signal`: The actual conditional input signal to use in case of conditional sampling. If the model is a class-conditional model, it suffices to simply state the word to be generated here (e.g. `dag`). If it is a brain-conditional model, this should be a full (absolute) file path to the ECoG recording file on disk (e.g. `/home/user/path/to/recording/dag1.npy`).
 
-> **Note:** Since the `experiment` config is a top-level config, it suffices to append `experiment=...` as argument when calling the script. All other of the above mentioned options are options specifically for generation, so 'generate' has to be added to the argument description, e.g.: `generate.name=... generate.conditional_type=...` et cetera. This is due to the way that Hydra layers config options hierarchically.
+> **Note:** Since the `experiment` config is a top-level config, it suffices to append `experiment=...` as argument when calling the script. All other of the above mentioned options are options specifically for generation, so 'generate' has to be added to the argument description, e.g.: `generate.name=... generate.conditional_type=...` et cetera.
 
 #### Example
 ```s
@@ -97,7 +109,8 @@ This codebase was originally forked from the [DiffWave-SaShiMi repository by alb
 ## References
 * [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf)
 
-
+---
+[🔝 Back to Top](#🧠🔊-brain2speech-diffusion---speech-generation-from-brain-activity-using-diffusion-models)
 
 <!-- # DiffWave Unconditional Dutch
 
