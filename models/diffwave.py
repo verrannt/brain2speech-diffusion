@@ -162,13 +162,8 @@ class DiffWave(nn.Module):
         x = self.init_conv(x)
         diffusion_step_embed = self.diffusion_embedding(diffusion_steps)
 
-        # if conditional_input is not None:
-        #     assert self.global_conditioner is not None, \
-        #         "Model is configured without a conditional input model, and " \
-        #         "therefore cannot receive conditional inputs."
-
-        #     # Encode conditional input before it's fed to the residual layers
-        #     conditional_input = self.global_conditioner(conditional_input)
+        if conditional_input is not None:
+            assert self.unconditional == False, "Model was passed conditional input but is not configured for it."
 
         skip = 0
         for layer in self.residual_layers:
