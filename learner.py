@@ -126,7 +126,6 @@ class Learner():
             rank=self.rank,
             diffusion_cfg=self.diffusion_cfg,
             dataset_cfg=self.dataset_cfg,
-            name=self.name,
             **self.generate_cfg,
         )
 
