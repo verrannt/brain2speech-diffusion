@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 
+from models.class_encoder import ClassEncoder
+from models.utils import Conv2D
+
 """
 Input:
 [B, C, E, T] (batch size, frequency bands (channels), electrodes, timesteps)
@@ -25,40 +28,86 @@ class BrainClassEncoder(nn.Module):
     def __init__(
         self, 
         n_classes : int = 10,
-        c_brain_in: int = 2000,
-        c_brain_mid: int = 1000,
         c_mid : int = 64,
         c_out : int = 128,
         **kwargs,
     ):
         super().__init__()
 
-        self.brain_classifier = nn.Sequential(
-            # [B, C_BRAIN_IN]
-            nn.Linear(c_brain_in, c_brain_mid),
-            nn.ReLU(),
-            # [B, C_BRAIN_MID]
-            nn.Linear(c_brain_mid, n_classes),
-            nn.Softmax(1),
-            # [B, N_CLASSES]
-        )
+        # Different classifiers can be tested here by swapping out the class. 
+        # self.brain_classifier = BrainClassifierV1(in_nodes=c_brain_in, mid_nodes=c_brain_mid, out_nodes=n_classes)
+        self.brain_classifier = BrainClassifierV2(n_classes=n_classes)
 
-        # [B, N_CLASSES]
-        self.embedding = nn.Linear(n_classes, 512, bias=False)
-        # [B, 512]
+        # The second part is identical to the class encoder, so it will be reused.
+        self.class_conditioner = ClassEncoder(n_classes=n_classes, c_mid=c_mid, c_out=c_out)
 
-        self.projection = nn.Sequential(
-            # [B, 1, 512]
-            nn.ConvTranspose1d(in_channels=1, out_channels=c_mid, kernel_size=3, padding=4, stride=8),
-            # [B, C_MID, 4083]
-            nn.ConvTranspose1d(in_channels=c_mid, out_channels=c_out, kernel_size=3, padding=4, stride=4),
-            # [B, C_OUT, 16323]
-        )
+    def forward(self, x):
+        x = self.brain_classifier(x)
+        x = x.unsqueeze(1)
+        x = self.class_conditioner(x)
+        return x
 
-    def forward(self, x):        
-        x = x.reshape(x.size(0), -1)        
-        x = self.brain_classifier(x)        
-        x = self.embedding(x)
-        x = x.unsqueeze(1)        
-        x = self.projection(x)        
+
+class BrainClassifierV1(nn.Module):
+    def __init__(self, in_nodes: int, mid_nodes: int, out_nodes: int, **kwargs) -> None:
+        super().__init__()
+        self.l1 = nn.Linear(in_nodes, mid_nodes)
+        self.l2 = nn.Linear(mid_nodes, out_nodes)
+        self.relu = nn.ReLU(inplace=True)
+        self.softmax = nn.Softmax(1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Flatten the input before processing. CxExT must be equal to IN_NODES
+        # [B, C, E, T]
+        x = x.reshape(x.size(0), -1)
+        # [B, IN_NODES]
+        x = self.l1(x)
+        x = self.relu(x)
+        # [B, MID_NODES]
+        x = self.l2(x)
+        x = self.softmax(x)
+        # [B, OUT_NODES]
+        return x
+
+
+class BrainClassifierV2(nn.Module):
+    def __init__(self, n_classes: int = 10, **kwargs) -> None:
+        super().__init__()
+        self.conv1 = Conv2D(2, 32, 3, (1,2), 1)
+        self.conv2 = Conv2D(32, 64, 3, (1,2), 1)
+        self.conv3 = Conv2D(64, 128, 3, (1,2), 1)
+
+        self.conv4 = Conv2D(128, 256, 3, (2,3), 1)
+        self.conv5 = Conv2D(256, 256, 3, (2,3), 1)
+
+        self.lin1 = nn.Linear(256, 128)
+        self.lin2 = nn.Linear(128, n_classes)
+
+        self.maxpool = nn.MaxPool2d(2, 2)
+        self.relu = nn.ReLU(inplace=True)
+        self.softmax = nn.Softmax(1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Temporal filtering
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.relu(x)
+
+        # Spatio-temporal filtering
+        x = self.conv4(x)
+        x = self.relu(x)
+        x = self.conv5(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = x.flatten(1)
+        
+        # Classification
+        x = self.lin1(x)
+        x = self.relu(x)
+        x = self.lin2(x)
+        x = self.softmax(x)
+
         return x
