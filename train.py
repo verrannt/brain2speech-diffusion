@@ -36,7 +36,7 @@ def train_single(rank: int, num_gpus: int, cfg: DictConfig):
     cfg: configuration options defined in the Hydra config file
     """
     train_cfg = cfg.pop('train')
-    learner = Learner(cfg, num_gpus, is_master=(rank==0), **train_cfg)
+    learner = Learner(cfg, num_gpus, rank, **train_cfg)
     learner.train()
 
 
@@ -66,7 +66,7 @@ def main(cfg: DictConfig) -> None:
     num_gpus = torch.cuda.device_count()
 
     if num_gpus <= 1:
-        train_single(rank=0, cfg=cfg)
+        train_single(rank=0, num_gpus=num_gpus, cfg=cfg)
     else:
         group_name = time.strftime("%Y%m%d-%H%M%S")
         mp.set_start_method("spawn")
