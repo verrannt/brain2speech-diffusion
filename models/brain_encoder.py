@@ -23,12 +23,21 @@ class BrainEncoder(nn.Module):
         **kwargs,
     ):
         super().__init__()
+
+        conv1 = nn.ConvTranspose2d(c_in, c_mid, (3, 32), padding=(1, pad_y), stride=(1, stride_y + 2))
+        conv1 = nn.utils.weight_norm(conv1)
+        nn.init.kaiming_normal_(conv1.weight)
+
+        conv2 = nn.ConvTranspose2d(c_mid, c_out, (3, 32), padding=(1, pad_y), stride=(1, stride_y))
+        conv2 = nn.utils.weight_norm(conv2)
+        nn.init.kaiming_normal_(conv2.weight)
+
         self.net = nn.Sequential(
-            nn.ConvTranspose2d(c_in, c_mid, (3, 32), padding=(1, pad_y), stride=(1, stride_y + 2)),
-            nn.ReLU(),
+            conv1,
+            nn.ReLU(inplace=True),
             nn.AvgPool2d((3, 1)),
-            nn.ConvTranspose2d(c_mid, c_out, (3, 32), padding=(1, pad_y), stride=(1, stride_y)),
-            nn.ReLU(),
+            conv2,
+            nn.ReLU(inplace=True),
             nn.AvgPool2d((7, 1)),
         )
 
