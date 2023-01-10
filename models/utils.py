@@ -77,3 +77,19 @@ class ZeroConv1d(nn.Module):
     def forward(self, x):
         out = self.conv(x)
         return out
+
+
+class Conv2D(nn.Module):
+    """
+    2-D Convolutional Layer with Kaiming Normal initialization and weight normalization.
+    """
+
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, padding=1):
+        super(Conv2D, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.conv = nn.utils.weight_norm(self.conv)
+        nn.init.kaiming_normal_(self.conv.weight)
+
+    def forward(self, x):
+        out = self.conv(x)
+        return out
