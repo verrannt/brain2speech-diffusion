@@ -5,8 +5,6 @@ import torch
 import torch.nn as nn
 
 from models.diffwave import DiffWave
-from models.brain_class_encoder import BrainClassEncoder
-
 
 
 class DiffWaveConditional(nn.Module):
@@ -43,41 +41,53 @@ class DiffWaveConditional(nn.Module):
     def load_pretrained_generator(
         self,
         checkpoint_dict: Mapping[str, Mapping[str, Any]],
+        freeze: bool = True,
     ):
-        # The keys for the local conditioner will always be missing from a pretrained unconditional model, so we
+        # The keys for the local conditioner will always be missing from an unconditional pretraining model, so we
         # set strict==False such that missing keys are ignored.
         inc_keys = self.speech_generator.load_state_dict(checkpoint_dict['model_state_dict'], strict=False)
         
+        # In any experiment setting, there should never be keys we don't expect
         assert len(inc_keys.unexpected_keys) == 0, \
             f'Found unexpected keys: {inc_keys.unexpected_keys}'
+        
+        # Special case: if the pretraining model was fully unconditional, the 'local_conditioner' part of DiffWave's
+        # residual layers will not have been initialized/trained and thus won't be in the state keys.
         assert all(['local_conditioner' in k for k in inc_keys.missing_keys]), \
             f'Found missing keys for layers other than the local conditioner: {inc_keys.missing_keys}'
 
-        # If using the BrainClassEncoder, need to also load the conditioner part of the network, as it was trained
-        # together with the speech generator (i.e. the class-conditional setting). This will only load the 
-        # class-conditioner part of the encoder, not the brain classifier part.
-        if self.encoder.__class__.__name__ == 'BrainClassEncoder':
-            inc_keys = self.encoder.load_state_dict(checkpoint_dict['conditioner_state_dict'], strict=False)
+        print('Pretrained generator loaded successfully')
+
+        if freeze:
+            self.speech_generator.requires_grad_(False)
+            print('Generator model frozen')
             
-            assert len(inc_keys.unexpected_keys) == 0, \
-                f'Found unexpected keys: {inc_keys.unexpected_keys}'
-            assert all(['brain_classifier' in k for k in inc_keys.missing_keys]), \
-                f'Found missing keys for layers other than the brain classifier: {inc_keys.missing_keys}'
+            # Same as above: for an unconditional pretraining model, we have to leave the residual layer's local 
+            # conditioners unfrozen, as they have not been trained yet
+            if any(['local_conditioner' in k for k in inc_keys.missing_keys]):
+                print('Local conditioner not in state dict, will be unfrozen')
+                for l in self.speech_generator.residual_layers:
+                    l.local_conditioner.requires_grad_(True)
+
+
+        if self.encoder.__class__.__name__ == 'BrainClassEncoder':
+            
+            # If using the BrainClassEncoder, need to also load the conditioner part of the network, as it was trained
+            # together with the speech generator (i.e. the class-conditional setting). This will only load the 
+            # class-conditioner part of the encoder, *not* the brain classifier part. Note that the class_conditioner 
+            # should exactly resemble the class encoder (conditioner) in the pretraining model, so we have no tolerance 
+            # for key mismatches and set strict==True
+            self.encoder.class_conditioner.load_state_dict(checkpoint_dict['conditioner_state_dict'], strict=True)
+
+            # If freezing of the generator is desired, we also freeze the class-conditioner part of the network, as 
+            # they were trained together
+            if freeze:
+                self.encoder.class_conditioner.requires_grad_(False)
+                print('Class conditioner part of BrainClassEncoder frozen')
+
 
     def encoder_state_dict(self):
         return self.encoder.state_dict()
 
     def generator_state_dict(self):
         return self.speech_generator.state_dict()
-
-    def freeze_generator(self, freeze: bool = True):
-        self.speech_generator.requires_grad_(not freeze)
-
-        # If using the BrainClassEncoder, also freeze the conditioner part of the network, as it was trained
-        # together with the speech generator (i.e. the class-conditional setting)
-        if self.encoder.__class__.__name__ == 'BrainClassEncoder':
-            self.encoder.embedding.requires_grad_(not freeze)
-            self.encoder.projection.requires_grad_(not freeze)
-
-    def unfreeze_generator(self):
-        self.freeze_generator(False)

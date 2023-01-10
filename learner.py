@@ -348,15 +348,8 @@ class Learner():
                     print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
                 else:
                     checkpoint = torch.load(self.model_cfg.pretrained_generator, map_location='cpu')
-                    self.model.load_pretrained_generator(checkpoint)
-                    print(f"Successfully loaded pretrained generator.")
-
-        if self.model_cfg.get("freeze_generator", False):
-            if self.model_cfg.unconditional:
-                print("Speech generator set to be frozen, but will continue to train since this is an unconditional model.")
-            else:
-                self.model.freeze_generator()
-                print("Speech generator frozen.")
+                    self.model.load_pretrained_generator(
+                        checkpoint, freeze=self.model_cfg.get("freeze_generator", False))
 
 
     def save_checkpoint(self, epoch: int, checkpoint_directory: str):
