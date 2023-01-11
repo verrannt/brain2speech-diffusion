@@ -1,10 +1,13 @@
+
+![README Under Construction](https://img.shields.io/badge/%F0%9F%9A%A7-README%20Under%20Construction-white)
+
 # 🧠🔊 Brain2Speech Diffusion: Speech Generation from Brain Activity using Diffusion Models
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Weights & Biases](https://img.shields.io/badge/Weights_&_Biases-FFBE00?logo=WeightsAndBiases&logoColor=white)](https://wandb.ai/pascalschroeder/brain2speech-diffusion)
 
 
-This repository proposes a diffusion-based generative model for the synthesis of natural speech from ECoG recordings of human brain activity. It supports pretraining of unconditional or class-conditional speech generators with consecutive fine-tuning on brain recordings, or fully end-to-end training on brain recordings. The diffusion model used is [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf), with different encoder models for the encoding of brain activity inputs or class labels.
+This repository proposes a diffusion-based generative model for the synthesis of natural speech from ECoG recordings of human brain activity. It supports pretraining of unconditional or class-conditional speech generators with consecutive fine-tuning on brain recordings, or fully end-to-end training on brain recordings. The diffusion model used is [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf), with different encoder models for the encoding of brain activity inputs or class labels. Originally, this repository started from [albertfgu's implementation of DiffWave](https://github.com/albertfgu/diffwave-sashimi).
 
 <p align="center">
 <img width="400" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png?raw=true">
