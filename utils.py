@@ -159,10 +159,10 @@ def prepend_data_base_dir(dataset_cfg: DictConfig) -> DictConfig:
     """
     dataset_cfg.audio_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.audio_path)
     dataset_cfg.splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.splits_path)
-    if 'eeg_path' in dataset_cfg:
-        dataset_cfg.eeg_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.eeg_path)
-    if 'eeg_splits_path' in dataset_cfg:
-        dataset_cfg.eeg_splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.eeg_splits_path)
+    if 'ecog_path' in dataset_cfg:
+        dataset_cfg.ecog_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.ecog_path)
+    if 'ecog_splits_path' in dataset_cfg:
+        dataset_cfg.ecog_splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.ecog_splits_path)
     return dataset_cfg
 
 

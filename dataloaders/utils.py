@@ -110,7 +110,7 @@ def standardize(tensor: Tensor) -> Tensor:
     return (tensor - torch.mean(tensor)) / torch.std(tensor)
 
 
-def standardize_eeg(tensor: Tensor) -> Tensor:
+def standardize_ecog(tensor: Tensor) -> Tensor:
     """
     Standardize ECoG `tensor` to mean 0 and standard deviation 1 along the last dimension (time).
     

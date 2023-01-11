@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from dataloaders.conditional_loaders import EEGLoader, get_word_from_filepath
+from dataloaders.conditional_loaders import ECOGLoader, get_word_from_filepath
 from dataloaders import ClassConditionalLoader
 from models import construct_model
 import utils
@@ -218,7 +218,7 @@ class Sampler:
 
     def load_conditional_input(self) -> Optional[Tensor]:
         """
-        Load conditional input, either by reading an EEG file from disk or getting the token for a word class. This 
+        Load conditional input, either by reading an ECoG file from disk or getting the token for a word class. This 
         depends on whether `conditional_type` is `brain` or `class`, respectively. If no conditional signal is given,
         simply return `None`.
 
@@ -241,8 +241,8 @@ class Sampler:
             
             # For brain-conditional sampling, load the provided file directly
             elif self.conditional_type == "brain":
-                eeg_length = int(self.dataset_cfg.segment_length * self.dataset_cfg.sampling_rate_eeg / 1000)
-                return EEGLoader.process_eeg(self.conditional_signal, eeg_length).unsqueeze(0).cuda()
+                ecog_length = int(self.dataset_cfg.segment_length * self.dataset_cfg.sampling_rate_ecog / 1000)
+                return ECOGLoader.process_ecog(self.conditional_signal, ecog_length).unsqueeze(0).cuda()
             
             else:
                 raise ValueError(f"Unknown conditional type: {self.conditional_type}")

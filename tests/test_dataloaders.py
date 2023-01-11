@@ -19,7 +19,7 @@ def test_brain_conditional():
             print(i)
             audio, _, conditional_input, mask = data
             print("Audio:", audio.shape)
-            print("EEG:  ", conditional_input.shape)
+            print("ECoG:  ", conditional_input.shape)
             if mask is not None:
                 print("Mask: ", mask.shape)
 
@@ -37,7 +37,7 @@ def test_variants_brain():
             if i % 1000 == 0: print(i)
             # audio, _, conditional_input, mask = data
             # print("Audio:", audio.shape)
-            # print("EEG:  ", conditional_input.shape)
+            # print("ECoG:  ", conditional_input.shape)
             # if mask is not None:
             #     print("Mask: ", mask.shape)
 

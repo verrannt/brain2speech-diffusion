@@ -22,7 +22,7 @@ def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_n
     # Augmented files are named according to {word}_{aug-type}.wav, so this removes the augmentation from the name
     if uses_augmentation:
         filepath = filepath.split('_')[0]
-    # Some files (e.g. EEG files) are numbered (e.g. goed1.npy), so this removes any digits from the name
+    # Some files (e.g. ECoG files) are numbered (e.g. goed1.npy), so this removes any digits from the name
     if uses_numbering:
         filepath = re.sub(r'[0-9]', '', filepath)
     return filepath
@@ -58,42 +58,42 @@ class ClassConditionalLoader:
         return out
 
 
-class EEGLoader(ABC):
+class ECOGLoader(ABC):
     """
-    Abstract class for implementing an EEG loader. Subclasses must implement the `retrieve_file` function which returns
-    an EEG file when given an audio file as input.
+    Abstract class for implementing an ECoG loader. Subclasses must implement the `retrieve_file` function which returns
+    an ECoG file when given an audio file as input.
     """
 
     def __init__(self, segment_length: int) -> None:
         self.segment_length = segment_length
 
     def __call__(self, audio_file_path: str, **kwargs) -> Tensor:
-        # Retrieving a matching EEG file must be handled by the inheriting classes
-        eeg_file = self.retrieve_file(audio_file_path, **kwargs)
-        eeg = self.process_eeg(eeg_file, self.segment_length)
-        return eeg
+        # Retrieving a matching ECoG file must be handled by the inheriting classes
+        ecog_file = self.retrieve_file(audio_file_path, **kwargs)
+        ecog = self.process_ecog(ecog_file, self.segment_length)
+        return ecog
 
     @staticmethod
-    def process_eeg(eeg_file: str, segment_length: int) -> Tensor:
+    def process_ecog(ecog_file: str, segment_length: int) -> Tensor:
         # Load from path
-        eeg = torch.from_numpy(np.load(eeg_file)).float()
+        ecog = torch.from_numpy(np.load(ecog_file)).float()
         # Select auditory cortex electrodes only
-        eeg = eeg[:, AUDITORY_CORTEX_IDX, :]
+        ecog = ecog[:, AUDITORY_CORTEX_IDX, :]
         # Standardize
-        eeg = utils.standardize_eeg(eeg)
+        ecog = utils.standardize_ecog(ecog)
         # Adjust to designated length
-        eeg = utils.fix_length_3d(eeg, segment_length)
-        return eeg
+        ecog = utils.fix_length_3d(ecog, segment_length)
+        return ecog
 
     @abstractmethod
     def retrieve_file(self, audio_file_path: str, **kwargs) -> str:
         pass
 
 
-class EEGRandomLoader(EEGLoader):
+class ECOGRandomLoader(ECOGLoader):
     """
     Given a filepath pointing to an audio file for a given word, randomly 
-    load an EEG file corresponding to the word.
+    load an ECoG file corresponding to the word.
     """
 
     def __init__(
@@ -133,16 +133,16 @@ class EEGRandomLoader(EEGLoader):
         # provide the audio files has no numbering in the top-level filename. This will break in case of file numbering.
         word = get_word_from_filepath(audio_file_path, uses_numbering=False)
         
-        # Find all EEG files for this word
+        # Find all ECoG files for this word
         fitting_files = [
             file for file in self.files[set]
             if get_word_from_filepath(file, uses_augmentation=False) == word
         ]
 
         if len(fitting_files) == 0:
-            raise ValueError(f"No EEG files found for {audio_file_path}")
+            raise ValueError(f"No ECoG files found for {audio_file_path}")
 
-        # Randomly select one of the EEG files
+        # Randomly select one of the ECoG files
         file = self.rng.choice(fitting_files)
 
         # Prepend path
@@ -151,9 +151,9 @@ class EEGRandomLoader(EEGLoader):
         return file
 
 
-class EEGExactLoader(EEGLoader):
+class ECOGExactLoader(ECOGLoader):
     """
-    Given a filepath pointing to an audio file for a given word, load the EEG
+    Given a filepath pointing to an audio file for a given word, load the ECoG
     file corresponding to exactly that audio recording.
     """
 
@@ -167,11 +167,11 @@ class EEGExactLoader(EEGLoader):
 
     def retrieve_file(self, audio_file_path: str, **kwargs) -> str:
         # Isolate word from given file path
-        # Note that we must not remove numbering, since the number tells us which EEG file to load 
+        # Note that we must not remove numbering, since the number tells us which ECoG file to load 
         # (e.g. 'goed7.wav' corresponds to 'goed7.npy')
         word = get_word_from_filepath(audio_file_path, uses_numbering=False, uses_augmentation=False)
 
-        # Select the EEG file for this word
+        # Select the ECoG file for this word
         file = self.path / f'{word}.npy'
 
         return file

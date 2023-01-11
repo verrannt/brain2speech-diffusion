@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 from .csv_dataset import CSVDataset
 from .utils import *
-from .conditional_loaders import EEGRandomLoader, EEGExactLoader, ClassConditionalLoader
+from .conditional_loaders import ECOGRandomLoader, ECOGExactLoader, ClassConditionalLoader
 
 
 SHUFFLING_SEED = 1144
@@ -35,11 +35,11 @@ def dataloader(
     Dataset 2: VariaNTS-Brain (always conditional)
         The VariaNTS word dataset, but paired with ECoG brain recordings. Since there is no 1-to-1 match between the
         two, for each word obtained from the VariaNTS dataset, a random ECoG recording corresponding to that word will
-        be loaded. This is done using the `EEGRandomLoader`.
+        be loaded. This is done using the `ECOGRandomLoader`.
 
     Dataset 3: Brain-Conditional (always conditional)
         The actual ECoG recording dataset which audio files matching exactly the brain recordings. For this dataset, 
-        the `EEGExactLoader` is used which fetches the correct ECoG recording for a given audio recording.
+        the `ECOGExactLoader` is used which fetches the correct ECoG recording for a given audio recording.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ def dataloader(
         'brain-conditional', since both of these datasets require a conditional model.
     AssertionError
         if the dataset name denoted in the `dataset_cfg` is 'variants-brain', but the `dataset_cfg` does not have the 
-        'eeg_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
+        'ecog_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
         and the ECoG recordings, so a separate train/val split has to be provided for the ECoG recordings.
     """
     
@@ -80,8 +80,8 @@ def dataloader(
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
     # For datasets using conditional brain inputs, need to also do processing for the ECoG files
     if not unconditional and 'brain' in dataset_name:
-        segment_length_eeg = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_eeg / 1000)
-        eeg_path = Path(dataset_cfg.eeg_path)
+        segment_length_ecog = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_ecog / 1000)
+        ecog_path = Path(dataset_cfg.ecog_path)
 
     if dataset_name == "variants":
         if unconditional:
@@ -92,21 +92,21 @@ def dataloader(
 
     elif dataset_name == "variants_brain":
         assert not unconditional
-        # Use random conditional loader with separate train and val splits for the EEG files, because we don't have a
-        # 1-to-1 matching between EEG and VariaNTS data
-        assert 'eeg_splits_path' in dataset_cfg
-        conditional_loader = EEGRandomLoader(
-            path = eeg_path,
-            splits_path = dataset_cfg.eeg_splits_path,
+        # Use random conditional loader with separate train and val splits for the ECoG files, because we don't have a
+        # 1-to-1 matching between ECoG and VariaNTS data
+        assert 'ecog_splits_path' in dataset_cfg
+        conditional_loader = ECOGRandomLoader(
+            path = ecog_path,
+            splits_path = dataset_cfg.ecog_splits_path,
             seed = SHUFFLING_SEED,
-            segment_length = segment_length_eeg)
+            segment_length = segment_length_ecog)
             
     elif dataset_name == "brain_conditional":
         assert not unconditional
-        # Use exact conditional loader to get the right EEG matrix for every audio file
-        conditional_loader = EEGExactLoader(
-            path = eeg_path,
-            segment_length = segment_length_eeg)
+        # Use exact conditional loader to get the right ECoG matrix for every audio file
+        conditional_loader = ECOGExactLoader(
+            path = ecog_path,
+            segment_length = segment_length_ecog)
 
 
     trainset = CSVDataset(

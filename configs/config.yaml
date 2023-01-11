@@ -19,7 +19,7 @@ generate:
   batch_size: null # Number of samples to generate at once per GPU. null means max (equal to samples_per_gpu)
   # Path to conditional input on disk in brain-conditional setting, or word class in class-conditional setting. 
   # Can be null in unconditional setting.
-  conditional_signal: /home/passch/data/HP1_EEG_conditional/denoised_fixed-transcript_cleaned/dag7.npy 
+  conditional_signal: /home/passch/data/HP1_ECoG_conditional/denoised_fixed-transcript_cleaned/dag7.npy 
   conditional_type: brain # Can be "brain" for ECoG input or "class" for class-conditional sampling
 
 distributed:
