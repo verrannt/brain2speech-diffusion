@@ -15,7 +15,7 @@ class DiffWaveConditional(nn.Module):
     def __init__(self, encoder_class: nn.Module, encoder_cfg: DictConfig, decoder_cfg: DictConfig) -> None:
         super().__init__()
         
-        self.encoder = encoder_class(**encoder_cfg)
+        self.encoder: nn.Module = encoder_class(**encoder_cfg)
         self.speech_generator = DiffWave(**decoder_cfg)
 
     def forward(self, x, conditional_input):
