@@ -28,7 +28,7 @@ distributed:
 
 wandb:
   mode: disabled # Pass in 'wandb.mode=online' to turn on wandb logging
-  project: diffwave-dutch-unconditional
+  project: brain2speech-diffusion
   entity: pascalschroeder
   id: null # Set to string and pass '+wandb.resume=true' to resume logging from run. 
            # ID of previous run be found in the run's URL on W&B (not the run name)
