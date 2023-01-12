@@ -15,6 +15,7 @@ from models import construct_model
 from sampler import Sampler
 import utils
 
+
 class Learner():
     """
     Learner object that trains a model on a single GPU, given configuration options. Can be used in distributed training
@@ -73,7 +74,7 @@ class Learner():
         self.epochs_per_ckpt = epochs_per_ckpt
         self.iters_per_logging = iters_per_logging
         self.learning_rate = learning_rate
-        self.batch_size_per_gpu = batch_size_per_gpu
+        self.batch_size = batch_size_per_gpu
         self.name = name
 
         # All other configs
@@ -132,7 +133,7 @@ class Learner():
         # Initialize data loader. Val and test loaders might be None if not specified
         trainloader, valloader, testloader = dataloader(
             self.dataset_cfg, 
-            batch_size = self.batch_size_per_gpu, 
+            batch_size = self.batch_size, 
             is_distributed = self.num_gpus > 1, 
             unconditional = self.model_cfg.unconditional
         )
