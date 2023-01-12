@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+
 def calc_diffusion_step_embedding(diffusion_steps, dim):
     """
     Embed a diffusion step $t$ into a higher dimensional space
@@ -30,6 +31,7 @@ def calc_diffusion_step_embedding(diffusion_steps, dim):
                                       torch.cos(_embed)), 1)
 
     return diffusion_step_embed
+
 
 def swish(x):
     """
