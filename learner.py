@@ -407,7 +407,15 @@ class Learner():
                 print("Pretrained generator assigned, but will not be loaded since this is an unconditional model.")
             else:
                 if self.ckpt_epoch != -1:
-                    print("Pretrained generator assigned, but will not be loaded since model has been loaded from checkpoint.")
+                    # If model is training from scratch, we only load the pretrained generator if the model is
+                    # also set to be frozen, because otherwise we would overwrite the learned parameters
+                    if self.model_cfg.get("freeze_generator", False):
+                        checkpoint = torch.load(self.model_cfg.pretrained_generator, map_location='cpu')
+                        self.model.load_pretrained_generator(
+                            checkpoint, freeze=True)
+                    else:
+                        print("Pretrained generator assigned, but will not be loaded since model has been loaded "
+                        "from checkpoint and is not set to be frozen.")
                 else:
                     checkpoint = torch.load(self.model_cfg.pretrained_generator, map_location='cpu')
                     self.model.load_pretrained_generator(
