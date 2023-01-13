@@ -8,6 +8,7 @@ from torch import Tensor
 from tqdm import tqdm
 import wandb
 
+from classifier_tester import ClassifierTester
 from dataloaders import dataloader
 from distributed_util import apply_gradient_allreduce, reduce_tensor
 from generate import generate
@@ -154,6 +155,15 @@ class Learner():
         self.load_checkpoint(checkpoint_directory)
         self.load_pretrained_generator()
 
+        # If fine-tuning with the BrainClassEncoder, we use a helper class to collect loss values for just the
+        # brain classifier part of the encoder
+        if self.model.__class__.__name__=='DiffWaveConditional' and \
+           self.model.encoder.__class__.__name__=='BrainClassEncoder':
+            self.classifier_tester = ClassifierTester(
+                os.path.join(self.dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'), self.num_gpus)
+        else:
+            self.classifier_tester = None
+
         # Continue iteration from checkpoint epoch number
         if self.ckpt_epoch == -1:
             start_epoch = 1
@@ -169,6 +179,11 @@ class Learner():
                 loss_val = self.train_step(data)
                 epoch_loss += loss_val
 
+                # Collect brain classifier loss
+                if self.classifier_tester is not None:
+                    loss_val = self.classifier_tester(
+                        self.model.encoder.brain_classifier, data[2], data[4], 'train')
+
                 # Log step loss
                 if self.is_master and i % self.iters_per_logging == 0 and i != 0:
                     wandb.log({
@@ -177,6 +192,13 @@ class Learner():
                         'epoch': epoch,
                     }, commit=False) # commit only at end of epoch
                     print(f"\nStep {i} Train Loss: {loss_val}")
+
+                    # Also log step loss if using brain classifier
+                    if self.classifier_tester is not None:
+                        wandb.log({
+                            'train/brain_classifier_loss':self.classifier_tester.last_loss('train'),
+                            'epoch': epoch,
+                        }, commit=False) # commit only at end of epoch
 
             if self.is_master:
                 # Log average epoch loss
@@ -192,7 +214,16 @@ class Learner():
                 if epoch % self.epochs_per_ckpt == 0:
                     self.save_checkpoint(epoch, checkpoint_directory)
                     self.generate_samples(epoch)
-            
+
+                # Log average epoch loss of brain classifier
+                if self.classifier_tester is not None:
+                    classifier_epoch_loss = self.classifier_tester.evaluate('train')
+                    wandb.log({
+                        'train/brain_classifier_loss_epoch': classifier_epoch_loss, 
+                        'epoch': epoch,
+                    })
+                    print(f"Brain Classifier Epoch Loss: {classifier_epoch_loss}")
+
                 # VALIDATION
                 if valloader is not None:
                     print()
@@ -200,6 +231,11 @@ class Learner():
                     for data in tqdm(valloader, desc='Validating', ncols=100):
                         loss_value = self.val_step(data)
                         val_loss += loss_value
+
+                        # Collect classifier loss
+                        if self.classifier_tester is not None:
+                            loss_value = self.classifier_tester(
+                                self.model.encoder.brain_classifier, data[2], data[4], 'val')
 
                     val_loss /= len(valloader)
                     wandb.log({
@@ -209,6 +245,20 @@ class Learner():
                     })
                     print(f"Loss: {val_loss}")
 
+                    # Log average validation epoch loss of brain classifier
+                    if self.classifier_tester is not None:
+                        loss_value = self.classifier_tester.evaluate('val')
+                        wandb.log({
+                            'val/brain_classifier_loss': loss_value,
+                            'epoch': epoch,
+                        })
+                        print(f"Brain Classifier Validation Loss: {loss_value}")
+
+
+            # Reset collected loss values for the brain classifier
+            if self.classifier_tester is not None:
+                self.classifier_tester.reset()
+
         # TESTING
         if self.is_master and testloader is not None:
             print("\n" + "-"*100 + "\n")
@@ -217,10 +267,21 @@ class Learner():
                 loss_value = self.val_step(data)
                 test_loss += loss_value
 
+                # Collect brain classifier loss
+                if self.classifier_tester is not None:
+                    loss_value = self.classifier_tester(
+                        self.model.encoder.brain_classifier, data[2], data[4], 'test')
+
             test_loss /= len(testloader)
             wandb.run.summary["test/loss"] = test_loss
             wandb.run.summary["test/log_loss"] = np.log(test_loss)
             print(f"Loss: {test_loss}")
+            
+            # Log test loss of brain classifier
+            if self.classifier_tester is not None:
+                loss_value = self.classifier_tester.evaluate('test')
+                wandb.run.summary["test/brain_classifier_loss"] = test_loss
+                print(f"Brain Classifier Test Loss: {loss_value}")
 
         # Close logger
         if self.is_master:
@@ -263,7 +324,7 @@ class Learner():
 
     def unpack_input(
         self, 
-        data: Tuple[Tensor, int, Union[Tensor, str], Tensor]
+        data: Tuple[Tensor, int, Union[Tensor, str], Tensor] # TODO
     ) -> Tuple[Tensor, Optional[Tensor], Optional[Tensor]]:
         """
         Unpack a tuple of different data obtained from a dataloader, and move the unpacked data to GPU.
@@ -278,7 +339,7 @@ class Learner():
         -------
         Tuple of the unpacked data as `Tensor`s on GPU, but without the sampling rate.
         """
-        audio, _, conditional_input, mask = data
+        audio, _, conditional_input, mask, _ = data
         
         audio = audio.cuda()
         
