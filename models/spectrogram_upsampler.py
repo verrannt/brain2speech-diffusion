@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.functional as F
 
-from models.utils import *
+from .utils import Conv
 
 class SpectrogramUpsampler(nn.Module):
     def __init__(self, res_channels, mel_upsample=[16,16]) -> None:
@@ -33,4 +33,3 @@ class SpectrogramUpsampler(nn.Module):
 
         x = self.mel_conv(x)
         return x
-
