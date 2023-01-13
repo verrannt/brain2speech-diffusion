@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 import torch
 import torch.nn as nn
 
-from models.diffwave import DiffWave
+from .diffwave import DiffWave
 
 
 class DiffWaveConditional(nn.Module):

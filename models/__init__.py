@@ -5,7 +5,8 @@ from .class_encoder import ClassEncoder
 from .brain_class_encoder import BrainClassEncoder
 from .diffwave_conditional import DiffWaveConditional
 from .diffwave import DiffWave
-from .utils import *
+from . import utils
+
 
 def construct_model(model_cfg: DictConfig):
     """

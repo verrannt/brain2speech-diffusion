@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from models.class_encoder import ClassEncoder
-from models.utils import Conv2D
+from .class_encoder import ClassEncoder
+from .utils import Conv2D
 
 """
 Input:
@@ -34,7 +34,8 @@ class BrainClassEncoder(nn.Module):
     ):
         super().__init__()
 
-        # Different classifiers can be tested here by swapping out the class. 
+        # Different classifiers can be tested here by swapping out the class. Note that the required key-word arguments
+        # have to be appropriately specified in the model config file.
         # self.brain_classifier = BrainClassifierV1(in_nodes=c_brain_in, mid_nodes=c_brain_mid, out_nodes=n_classes)
         self.brain_classifier = BrainClassifierV2(n_classes=n_classes)
 
