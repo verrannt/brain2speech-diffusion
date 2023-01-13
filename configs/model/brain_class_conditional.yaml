@@ -13,7 +13,5 @@ pretrained_generator: /home/passch/exp/VariaNTSWords-CC-v2_h256_d36_T200_betaT0.
 encoder_config:
   name: brain_class_encoder
   n_classes: 55
-  c_brain_in: 1600
-  c_brain_mid: 512
   c_mid: 64
   c_out: 128
