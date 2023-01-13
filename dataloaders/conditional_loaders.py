@@ -2,12 +2,13 @@ from abc import ABC, abstractmethod
 import os
 from pathlib import Path
 import re
+from typing import List
 
 import numpy as np
 import torch
 from torch import Tensor
 
-import dataloaders.utils as utils
+from . import utils
 
 
 AUDITORY_CORTEX_IDX = [14, 15, 18, 19, 20, 21, 22, 23]
@@ -53,6 +54,21 @@ class ClassConditionalLoader:
         except KeyError:
             raise ValueError(f"Unrecognized word: {word}")
         out = torch.LongTensor([idx])
+        out = torch.nn.functional.one_hot(out, self.num_classes)
+        out = out.type(torch.float32)
+        return out
+
+    def batch_call(self, audio_file_list: List[str]) -> Tensor:
+        """
+        For faster processing of multiple files, call this function with a list of file paths. Will return a 
+        batched tensor of one-hot encoded class labels.
+        """
+        words = [get_word_from_filepath(fp) for fp in audio_file_list]
+        try:
+            idxs = [self.word_tokens[word] for word in words]
+        except KeyError:
+            raise ValueError(f"Could not recognize one of {words}")
+        out = torch.LongTensor(idxs)
         out = torch.nn.functional.one_hot(out, self.num_classes)
         out = out.type(torch.float32)
         return out
