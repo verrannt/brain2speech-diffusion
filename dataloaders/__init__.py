@@ -70,6 +70,8 @@ def dataloader(
         if the dataset name denoted in the `dataset_cfg` is 'variants-brain', but the `dataset_cfg` does not have the 
         'ecog_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
         and the ECoG recordings, so a separate train/val split has to be provided for the ECoG recordings.
+    ValueError
+        if the `_name_` specified in the `dataset_cfg` is unknown.
     """
     
     dataset_name = dataset_cfg.pop("_name_")
@@ -79,7 +81,7 @@ def dataloader(
     # Convert segment length from milliseconds to frames
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
     # For datasets using conditional brain inputs, need to also do processing for the ECoG files
-    if not unconditional and 'brain' in dataset_name:
+    if dataset_name == "variants_brain" or "hp1_ecog_conditional":
         segment_length_ecog = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_ecog / 1000)
         ecog_path = Path(dataset_cfg.ecog_path)
 
@@ -101,12 +103,15 @@ def dataloader(
             seed = SHUFFLING_SEED,
             segment_length = segment_length_ecog)
             
-    elif dataset_name == "brain_conditional":
+    elif dataset_name == "hp1_ecog_conditional":
         assert not unconditional
         # Use exact conditional loader to get the right ECoG matrix for every audio file
         conditional_loader = ECOGExactLoader(
             path = ecog_path,
             segment_length = segment_length_ecog)
+
+    else:
+        raise ValueError(f'Unknown dataset specified: {dataset_name}')
 
 
     trainset = CSVDataset(
