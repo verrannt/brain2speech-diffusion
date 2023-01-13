@@ -137,7 +137,7 @@ def dataloader(
 
     # Use distributed sampling for the train set. Note that we do not use it for validation and testing set, since those 
     # are only run on the first GPU.
-    train_sampler = DistributedSampler(trainset) if is_distributed else None
+    train_sampler = DistributedSampler(trainset, shuffle=False) if is_distributed else None
 
     trainloader = DataLoader(
         trainset,
