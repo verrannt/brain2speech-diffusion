@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from torch import Tensor
 import numpy as np
 
-import dataloaders.utils as utils
+from . import utils
 
 
 class CSVDataset(Dataset):
@@ -89,7 +89,7 @@ class CSVDataset(Dataset):
 
         self.subset = subset
 
-    def __getitem__(self, n: int) -> Tuple[Tensor, int, Union[Tensor, str], Tensor]:
+    def __getitem__(self, n: int) -> Tuple[Tensor, int, Union[Tensor, str], Tensor, str]:
         """
         Load the `n`-th file from the dataset
 
@@ -100,7 +100,8 @@ class CSVDataset(Dataset):
 
         Returns
         -------
-        The loaded audio, sampling rate, optional conditional signal and a loss mask. See `load_audio()` for details.
+        The loaded audio, sampling rate, optional conditional signal, loss mask, and file path. See `load_audio()` 
+        for details.
 
         Raises
         ------
@@ -113,7 +114,7 @@ class CSVDataset(Dataset):
     def __len__(self) -> int:
         return len(self._files)
 
-    def load_audio(self, file_path: str) -> Tuple[Tensor, int, Union[Tensor, str], Tensor]:
+    def load_audio(self, file_path: str) -> Tuple[Tensor, int, Union[Tensor, str], Tensor, str]:
         """
         Load an audio file, given its path on disk. Also returns the audio's sampling rate, a matching conditional
         input if `self.conditional_loader` is given, and the corresponding loss mask.
@@ -126,7 +127,8 @@ class CSVDataset(Dataset):
         Returns
         -------
         A tuple of the audio waveform (`Tensor`), the sampling rate (`int`), the conditional signal (either a `Tensor`
-        if a conditional loader is given, or an empty `str` if not), and the loss mask (`Tensor`, same shape as audio).
+        if a conditional loader is given, or an empty `str` if not), the loss mask (`Tensor`, same shape as audio), and 
+        the file path itself (`str`).
         """
         waveform, sample_rate = torchaudio.load(file_path)
 
@@ -142,4 +144,4 @@ class CSVDataset(Dataset):
         else:
             conditional_signal = ""
 
-        return (waveform, sample_rate, conditional_signal, mask)
+        return (waveform, sample_rate, conditional_signal, mask, file_path)
