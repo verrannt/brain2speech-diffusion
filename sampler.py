@@ -37,7 +37,8 @@ class Sampler:
     conditional_signal:
         The actual conditional signal to input to the model, in case that it is a conditional model. If
         `conditional_type=='brain'`, must be a filepath pointing to an appropriate ECoG file (`.npy`) on disk. If
-        `conditional_type=='class'`, can simply be the class name, e.g. 'dag'.
+        `conditional_type=='class'`, can simply be the class name, e.g. 'dag'. If the model is unconditional, must be
+        `None`.
 
     Raises
     ------
@@ -55,7 +56,7 @@ class Sampler:
         name: str,
         n_samples: int = 1,
         batch_size: int = None,
-        conditional_signal: str = None,
+        conditional_signal: Optional[str] = None,
         conditional_type: str = "brain",
         **kwargs,
     ) -> None:
@@ -88,7 +89,8 @@ class Sampler:
         # Get output directory for waveforms for this run
         experiment_name, waveform_directory = utils.create_output_directory(
             self.name, model_cfg, self.diffusion_cfg, self.dataset_cfg, 'waveforms')
-        
+
+
         # Load model if not given
         if model is None:
             model, ckpt_epoch = self.load_model(experiment_name, model_cfg, ckpt_epoch, self.conditional_signal is None)
@@ -104,6 +106,10 @@ class Sampler:
         audio_length = int(self.dataset_cfg.segment_length * self.dataset_cfg.sampling_rate / 1000)
         
         # Load conditional input
+        if model_cfg.unconditional and self.conditional_signal is not None:
+            raise ValueError('Model configured to be unconditional, but a conditional input is specified')
+        if not model_cfg.unconditional and self.conditional_signal is None:
+            raise ValueError('Model configured to be conditional, but no conditional input is specified')
         conditional_input = self.load_conditional_input()
 
         # Print information about inference
@@ -138,11 +144,14 @@ class Sampler:
 
         # Save generated audio as WAV files to disk
         
-        # Get the word from filepath, but do not remove numbering: numbering is only there in the brain-conditional case
-        # and is relevant for telling us which ECoG recording was used.
-        conditional_signal_name = get_word_from_filepath(self.conditional_signal, uses_numbering=False)
+        # In case of conditional sampling, get the word from filepath, but do not remove numbering: numbering is only
+        # there in the brain-conditional case and is relevant for telling us which ECoG recording was used.
+        if self.conditional_signal is not None:
+            conditional_signal_name = get_word_from_filepath(self.conditional_signal, uses_numbering=False) + '_'
+        else:
+            conditional_signal_name = ''
         for i in range(self.n_samples):
-            outfile = f'{conditional_signal_name}_{self.n_samples*self.rank + i}.wav'
+            outfile = f'{conditional_signal_name}{self.n_samples*self.rank + i}.wav'
             wavwrite(
                 os.path.join(waveform_directory, outfile),
                 self.dataset_cfg.sampling_rate,
