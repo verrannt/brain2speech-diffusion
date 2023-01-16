@@ -173,25 +173,24 @@ class Learner():
         # TRAINING
         for epoch in range(start_epoch, self.n_epochs+start_epoch):
             print(f"\n{'-'*100}\nEPOCH {epoch}/{start_epoch+self.n_epochs-1}")
-            epoch_loss = 0.
+            train_loss = 0.
             print()
             for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
-                loss_val = self.train_step(data)
-                epoch_loss += loss_val
+                train_step_loss = self.train_step(data)
+                train_loss += train_step_loss
 
                 # Collect brain classifier loss
                 if self.classifier_tester is not None:
-                    loss_val = self.classifier_tester(
-                        self.model.encoder.brain_classifier, data[2], data[4], 'train')
+                    self.classifier_tester(self.model.encoder.brain_classifier, data[2], data[4], 'train')
 
                 # Log step loss
                 if self.is_master and i % self.iters_per_logging == 0 and i != 0:
                     wandb.log({
-                        'train/loss': loss_val,
-                        'train/log_loss': np.log(loss_val),
+                        'train/loss': train_step_loss,
+                        'train/log_loss': np.log(train_step_loss),
                         'epoch': epoch,
                     }, commit=False) # commit only at end of epoch
-                    print(f"\nStep {i} Train Loss: {loss_val}")
+                    print(f"\nStep {i} Train Loss: {train_step_loss}")
 
                     # Also log step loss if using brain classifier
                     if self.classifier_tester is not None:
@@ -202,13 +201,13 @@ class Learner():
 
             if self.is_master:
                 # Log average epoch loss
-                epoch_loss /= len(trainloader)
+                train_loss /= len(trainloader)
                 wandb.log({
-                    'train/loss_epoch': epoch_loss, 
-                    'train/log_loss_epoch': np.log(epoch_loss),
+                    'train/loss_epoch': train_loss, 
+                    'train/log_loss_epoch': np.log(train_loss),
                     'epoch': epoch,
                 })
-                print(f"Loss: {epoch_loss}")
+                print(f"Loss: {train_loss}")
 
                 # Save checkpoint
                 if epoch % self.epochs_per_ckpt == 0:
@@ -217,25 +216,24 @@ class Learner():
 
                 # Log average epoch loss of brain classifier
                 if self.classifier_tester is not None:
-                    classifier_epoch_loss = self.classifier_tester.evaluate('train')
+                    classifier_train_loss = self.classifier_tester.evaluate('train')
                     wandb.log({
-                        'train/brain_classifier_loss_epoch': classifier_epoch_loss, 
+                        'train/brain_classifier_loss_epoch': classifier_train_loss, 
                         'epoch': epoch,
                     })
-                    print(f"Brain Classifier Epoch Loss: {classifier_epoch_loss}")
+                    print(f"Brain Classifier Epoch Loss: {classifier_train_loss}")
 
                 # VALIDATION
                 if valloader is not None:
                     print()
-                    val_loss = 0
+                    val_loss = 0.
                     for data in tqdm(valloader, desc='Validating', ncols=100):
-                        loss_value = self.val_step(data)
-                        val_loss += loss_value
+                        val_step_loss = self.val_step(data)
+                        val_loss += val_step_loss
 
                         # Collect classifier loss
                         if self.classifier_tester is not None:
-                            loss_value = self.classifier_tester(
-                                self.model.encoder.brain_classifier, data[2], data[4], 'val')
+                            self.classifier_tester(self.model.encoder.brain_classifier, data[2], data[4], 'val')
 
                     val_loss /= len(valloader)
                     wandb.log({
@@ -247,15 +245,15 @@ class Learner():
 
                     # Log average validation epoch loss of brain classifier
                     if self.classifier_tester is not None:
-                        loss_value = self.classifier_tester.evaluate('val')
+                        classifier_val_loss = self.classifier_tester.evaluate('val')
                         wandb.log({
-                            'val/brain_classifier_loss': loss_value,
+                            'val/brain_classifier_loss': classifier_val_loss,
                             'epoch': epoch,
                         })
-                        print(f"Brain Classifier Validation Loss: {loss_value}")
+                        print(f"Brain Classifier Validation Loss: {classifier_val_loss}")
 
 
-            # Reset collected loss values for the brain classifier
+            # Reset collected loss values for the brain classifier after each epoch
             if self.classifier_tester is not None:
                 self.classifier_tester.reset()
 
@@ -264,13 +262,12 @@ class Learner():
             print("\n" + "-"*100 + "\n")
             test_loss = 0.
             for data in tqdm(testloader, desc='Testing', ncols=100):
-                loss_value = self.val_step(data)
-                test_loss += loss_value
+                test_step_loss = self.val_step(data)
+                test_loss += test_step_loss
 
                 # Collect brain classifier loss
                 if self.classifier_tester is not None:
-                    loss_value = self.classifier_tester(
-                        self.model.encoder.brain_classifier, data[2], data[4], 'test')
+                    self.classifier_tester(self.model.encoder.brain_classifier, data[2], data[4], 'test')
 
             test_loss /= len(testloader)
             wandb.run.summary["test/loss"] = test_loss
@@ -279,9 +276,9 @@ class Learner():
             
             # Log test loss of brain classifier
             if self.classifier_tester is not None:
-                loss_value = self.classifier_tester.evaluate('test')
-                wandb.run.summary["test/brain_classifier_loss"] = test_loss
-                print(f"Brain Classifier Test Loss: {loss_value}")
+                classifier_test_loss = self.classifier_tester.evaluate('test')
+                wandb.run.summary["test/brain_classifier_loss"] = classifier_test_loss
+                print(f"Brain Classifier Test Loss: {classifier_test_loss}")
 
         # Close logger
         if self.is_master:
