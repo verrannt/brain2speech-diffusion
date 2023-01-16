@@ -46,7 +46,7 @@ class ClassifierTester:
 
         loss_val = self.loss(pred_classes, real_classes)
 
-        if self.num_gpus > 1:
+        if self.num_gpus > 1 and set == 'train':
             loss_val = reduce_tensor(loss_val.data, self.num_gpus)
         
         loss_val = loss_val.item()
