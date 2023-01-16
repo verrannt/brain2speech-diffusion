@@ -14,6 +14,7 @@
 # -----------------------------------------------------------------------------
 
 
+from functools import partial
 import multiprocessing as mp
 import time
 
@@ -23,39 +24,40 @@ import torch
 
 from distributed_util import init_distributed
 from learner import Learner
+from utils import HidePrints
 
 
-def train_single(rank: int, num_gpus: int, cfg: DictConfig):
+def train(rank: int, num_gpus: int, group_name: str, cfg: DictConfig) -> None:
     """
-    Train model using the `Learner` class with the configurations given.
+    Trains model using the `Learner` class with the configurations given. If `num_gpus > 1`, initializes distributed
+    processing to allow training of a model on several GPUs.
 
     Parameters
-    ---
-    rank: Rank of the GPU this function instance is called on
-    num_gpus: Total number of GPUs available in this run
-    cfg: configuration options defined in the Hydra config file
+    ----------
+    rank: 
+        Rank of the GPU this function instance is called on
+    num_gpus: 
+        Total number of GPUs available in this run
+    group_name: 
+        Identifier of the process group
+    cfg: 
+        Configuration options defined in the Hydra config file
     """
-    train_cfg = cfg.pop('train')
-    learner = Learner(cfg, num_gpus, rank, **train_cfg)
-    learner.train()
 
+    print(f'GPU {rank}: Training started')
 
-def train_distributed(rank: int, num_gpus: int, group_name: str, cfg: DictConfig):
-    """
-    Wrapper that first appropriately initializes distributed training, and then calls the train function.
+    with HidePrints(rank != 0): # Suppress print outputs for all except master GPU
+        # Init distributed processing if more than one GPUs are available
+        if num_gpus > 1:
+            dist_cfg = cfg.pop('distributed')
+            init_distributed(rank, num_gpus, group_name, **dist_cfg)
 
-    Parameters
-    ---
-    rank: Rank of the GPU this function instance is called on
-    num_gpus: Total number of GPUs available in this run
-    group_name: Identifier of the process group
-    cfg: configuration options defined in the Hydra config file
-    """
-    # Distributed running initialization
-    dist_cfg = cfg.pop('distributed')
-    init_distributed(rank, num_gpus, group_name, **dist_cfg)
+        # Running training
+        train_cfg = cfg.pop('train')
+        learner = Learner(cfg, num_gpus, rank, **train_cfg)
+        learner.train()
 
-    train_single(rank, num_gpus, cfg)
+    print(f'\nGPU {rank}: Training finished')
 
 
 @hydra.main(version_base=None, config_path="configs/", config_name="config")
@@ -65,20 +67,20 @@ def main(cfg: DictConfig) -> None:
 
     num_gpus = torch.cuda.device_count()
 
+    train_fn = partial(
+        train,
+        num_gpus=num_gpus,
+        group_name=time.strftime("%Y%m%d-%H%M%S"),
+        cfg=cfg,
+    )
+
     if num_gpus <= 1:
-        train_single(rank=0, num_gpus=num_gpus, cfg=cfg)
+        train_fn(0)
     else:
-        group_name = time.strftime("%Y%m%d-%H%M%S")
         mp.set_start_method("spawn")
         processes = []
         for i in range(num_gpus):
-            p = mp.Process(
-                target=train_distributed, 
-                kwargs={
-                    'rank': i, 
-                    'num_gpus': num_gpus, 
-                    'group_name': group_name, 
-                    'cfg': cfg})
+            p = mp.Process(target=train_fn, args=(i,))
             p.start()
             processes.append(p)
         for p in processes:
