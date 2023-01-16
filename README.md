@@ -112,6 +112,42 @@ This codebase was originally forked from the [DiffWave-SaShiMi repository by alb
 ## References
 * [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf)
 
+
+## Addendum
+
+### Experiment collection
+
+Examples of how experiments can be run. Given parameters may need to be changed.
+
+#### Unconditional Pretraining
+
+> Note: You also have to specify `generate.conditional_signal=null` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
+
+```c
+CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=variants_uncond_pretraining diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_signal=null
+```
+
+#### Class-Conditional Pretraining
+
+> Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
+
+```c
+CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=variants_class_cond_pretraining diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_type=class generate.conditional_signal=dag
+```
+
+#### Brain-Conditional Fine-Tuning
+
+```c
+CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=brain_cond_finetuning diffusion.T=5 train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+```
+
+#### Brain + Class Conditional Fine-Tuning
+
+```c
+CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=brain_class_cond_finetuning diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+```
+
+
 ---
 [🔝 Back to Top](#-brain2speech-diffusion-speech-generation-from-brain-activity-using-diffusion-models)
 
