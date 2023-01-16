@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List, Tuple, Union, Dict, Any
 
 import numpy as np
@@ -45,6 +46,46 @@ class MaskedMSELoss():
             # If no mask is given we simply return the standard MSELoss by
             # taking the mean
             return loss_val.mean()
+
+
+class HidePrints:
+    """
+    Context that suppresses all outputs written to `stdout`. Useful for multiprocessing, when only one process should 
+    print to `stdout`. 
+    
+    Does not suppress raised exceptions.
+
+    Parameters
+    ----------
+    hide:
+        Whether to hide or print outputs
+
+    Usage
+    -----
+    ```
+    print('This will be printed')
+
+    with HidePrints(True):
+        print('This will *not* be printed')
+
+    print('This will again be printed')
+
+    with HidePrints(False):    
+        print('This will also be printed')
+    ```
+    """
+    def __init__(self, hide: bool = True) -> None:
+        self.hide = hide
+
+    def __enter__(self):
+        if self.hide:
+            self._original_stdout = sys.stdout
+            sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.hide:
+            sys.stdout.close()
+            sys.stdout = self._original_stdout
 
 
 def find_max_epoch(path: str) -> int:
