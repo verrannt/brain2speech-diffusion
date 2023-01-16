@@ -321,7 +321,7 @@ class Learner():
 
     def unpack_input(
         self, 
-        data: Tuple[Tensor, int, Union[Tensor, str], Tensor] # TODO
+        data: Tuple[Tensor, int, Union[Tensor, str], Tensor, str]
     ) -> Tuple[Tensor, Optional[Tensor], Optional[Tensor]]:
         """
         Unpack a tuple of different data obtained from a dataloader, and move the unpacked data to GPU.
