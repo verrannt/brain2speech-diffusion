@@ -58,19 +58,22 @@ class ClassConditionalLoader:
         out = out.type(torch.float32)
         return out
 
-    def batch_call(self, audio_file_list: List[str]) -> Tensor:
+    def batch_call(self, audio_file_list: List[str], one_hot: bool = True) -> Tensor:
         """
         For faster processing of multiple files, call this function with a list of file paths. Will return a 
-        batched tensor of one-hot encoded class labels.
+        batched tensor of one-hot encoded class labels if `one_hot==True`, else just a tensor of the indexes.
         """
         words = [get_word_from_filepath(fp) for fp in audio_file_list]
         try:
             idxs = [self.word_tokens[word] for word in words]
         except KeyError:
             raise ValueError(f"Could not recognize one of {words}")
-        out = torch.LongTensor(idxs)
-        out = torch.nn.functional.one_hot(out, self.num_classes)
-        out = out.type(torch.float32)
+        if one_hot:
+            out = torch.LongTensor(idxs)
+            out = torch.nn.functional.one_hot(out, self.num_classes)
+            out = out.type(torch.float32)
+        else:
+            out = torch.FloatTensor(idxs)
         return out
 
 
