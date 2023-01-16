@@ -175,7 +175,7 @@ class Learner():
             print(f"\n{'-'*100}\nEPOCH {epoch}/{start_epoch+self.n_epochs-1}")
             train_loss = 0.
             print()
-            for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100)):
+            for i, data in enumerate(tqdm(trainloader, desc='Training', ncols=100, disable=not self.is_master)):
                 train_step_loss = self.train_step(data)
                 train_loss += train_step_loss
 
