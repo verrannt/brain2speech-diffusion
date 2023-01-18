@@ -15,3 +15,4 @@ encoder_config:
   n_classes: 55
   c_mid: 64
   c_out: 128
+  c_brain_in: 1600
