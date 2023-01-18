@@ -1,3 +1,5 @@
+from typing import Union, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -86,7 +88,14 @@ class Conv2D(nn.Module):
     2-D Convolutional Layer with Kaiming Normal initialization and weight normalization.
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, padding=1):
+    def __init__(
+        self, 
+        in_channels: int, 
+        out_channels: int, 
+        kernel_size: Union[int, Tuple[int, int]] = 3, 
+        stride: Union[int, Tuple[int, int]] = 2, 
+        padding: Union[int, Tuple[int, int]] = 1
+    ) -> None:
         super(Conv2D, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
         self.conv = nn.utils.weight_norm(self.conv)
