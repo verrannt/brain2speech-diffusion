@@ -74,41 +74,89 @@ class BrainClassifierV1(nn.Module):
 class BrainClassifierV2(nn.Module):
     def __init__(self, n_classes: int = 10, **kwargs) -> None:
         super().__init__()
-        self.conv1 = Conv2D(2, 32, 3, (1,2), 1)
-        self.conv2 = Conv2D(32, 64, 3, (1,2), 1)
-        self.conv3 = Conv2D(64, 128, 3, (1,2), 1)
+        self.network = nn.Sequential(
+            # Temporal filtering
+            nn.Conv2d(2, 32, 3, (1,2), 1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(32),
+            nn.Dropout(0.1),
+            
+            nn.Conv2d(32, 64, 3, (1,2), 1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(64),
+            nn.Dropout(0.1),
+            
+            nn.Conv2d(64, 128, 3, (1,2), 1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(128),
+            nn.Dropout(0.1),
+            
+            # Spatio-temporal filtering
+            nn.Conv2d(128, 256, 3, (2,3), 1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(256),
+            nn.Dropout(0.1),
+            
+            nn.Conv2d(256, 256, 3, (2,3), 1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(256),
+            nn.Dropout(0.1),
+            
+            nn.MaxPool2d(2, 2),
+            
+            # Flatten
+            nn.Flatten(),
 
-        self.conv4 = Conv2D(128, 256, 3, (2,3), 1)
-        self.conv5 = Conv2D(256, 256, 3, (2,3), 1)
-
-        self.lin1 = nn.Linear(256, 128)
-        self.lin2 = nn.Linear(128, n_classes)
-
-        self.maxpool = nn.MaxPool2d(2, 2)
-        self.relu = nn.ReLU(inplace=True)
-        self.softmax = nn.Softmax(1)
+            # Classification
+            nn.Linear(256, 128),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm1d(128),
+            nn.Dropout(0.5),
+            
+            nn.Linear(128, n_classes),
+            nn.Softmax(1),
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Temporal filtering
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.conv3(x)
-        x = self.relu(x)
-
-        # Spatio-temporal filtering
-        x = self.conv4(x)
-        x = self.relu(x)
-        x = self.conv5(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = x.flatten(1)
-        
-        # Classification
-        x = self.lin1(x)
-        x = self.relu(x)
-        x = self.lin2(x)
-        x = self.softmax(x)
-
+        x = self.network(x)
         return x
+
+
+# class BrainClassifierV3(nn.Module):
+#     def __init__(self) -> None:
+#         super().__init__()
+
+#         self.conv1 = Conv2D(2, 64, kernel_size=(1,3), stride=(1,3), padding=0)
+#         self.bn1 = nn.BatchNorm2d(64)
+#         self.pool1 = nn.MaxPool2d(kernel_size=(1,2), stride=(1,2))
+
+#         self.conv2 = Conv2D(64, 128, kernel_size=(3,3), stride=(2,2), padding=0)
+#         self.bn1 = nn.BatchNorm2d(128)
+#         self.pool2 = nn.MaxPool2d(kernel_size=(1,2), stride=(1,2))
+
+#         self.lin1 = nn.Linear(1152, 512)
+#         self.lin2 = nn.Linear(512, 55)
+
+
+#         self.relu = nn.ReLU(inplace=True)
+#         self.softmax = nn.Softmax(1)
+
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         x = self.conv1(x)
+#         x = self.bn1(x)
+#         x = self.relu(x)
+#         x = self.pool1(x)
+        
+#         x = self.conv2(x)
+#         x = self.bn2(x)
+#         x = self.relu(x)
+#         x = self.pool2(x)
+
+#         x = x.flatten(1)
+
+#         x = self.lin1(x)
+#         x = self.relu(x)
+#         x = self.lin2(x)
+#         x = self.softmax(x)
+        
+#         return x
