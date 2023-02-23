@@ -11,7 +11,8 @@ from torch import Tensor
 from . import utils
 
 
-AUDITORY_CORTEX_IDX = [14, 15, 18, 19, 20, 21, 22, 23]
+# Indexes for the electrodes covering the auditory cortex in subject 1
+AUDITORY_CORTEX_IDX = [13, 14, 17, 18, 19, 20, 21, 22]
 
 
 def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_numbering: bool = True) -> str:
