@@ -81,7 +81,7 @@ def dataloader(
     # Convert segment length from milliseconds to frames
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
     # For datasets using conditional brain inputs, need to also do processing for the ECoG files
-    if dataset_name == "variants_brain" or "hp1_ecog_conditional":
+    if dataset_name == "variants_brain" or dataset_name == "hp1_ecog_conditional":
         segment_length_ecog = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_ecog / 1000)
         ecog_path = Path(dataset_cfg.ecog_path)
 
