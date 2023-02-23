@@ -55,11 +55,11 @@ class BrainClassifierV1(nn.Module):
         self.network = nn.Sequential(
             nn.Linear(in_nodes, in_nodes//2), 
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            # nn.Dropout(0.5),
 
             nn.Linear(in_nodes//2, in_nodes//4),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
+            # nn.Dropout(0.5),
 
             nn.Linear(in_nodes//4, n_classes),
             nn.Softmax(1),
