@@ -138,11 +138,11 @@ def min_max_norm_audio(tensor: Tensor) -> Tensor:
     Parameters
     ----------
     tensor:
-        The tensor to standardize. Must be 3d.
+        The tensor to normalize. Must be 3d.
 
     Returns
     -------
-    The standardized tensor
+    The normalized tensor
 
     See also
     --------
@@ -152,3 +152,22 @@ def min_max_norm_audio(tensor: Tensor) -> Tensor:
     ```
     """
     return -1 + (tensor + 32768) * 2 / 65535
+
+def normalize(tensor: Tensor, minval: float, maxval: float) -> Tensor:
+    """
+    Normalize `tensor` to range `[0,1]` assuming original range values `[minval,maxval]`.
+
+    Parameters
+    ----------
+    tensor:
+        The tensor to normalize
+    minval:
+        Lower end of the range of the original data
+    maxval:
+        Upper end of the range of the original data
+
+    Returns
+    -------
+    The normalized tensor
+    """
+    return (tensor - minval) / (maxval - minval)
