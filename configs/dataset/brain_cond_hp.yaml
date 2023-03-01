@@ -1,9 +1,9 @@
-# Config file for the brain recording Harry Potter reading dataset
+# Fine-tuning dataset for pairwise Harry Potter ECoG to speech decoding
 
 _name_: hp1_ecog_conditional
 splits_path: datasplits/HP1_ECoG_conditional/denoised_fixed-transcript_cleaned/
-audio_path: HP1_ECoG_conditional/denoised_fixed-transcript_cleaned/
-ecog_path: HP1_ECoG_conditional/denoised_fixed-transcript_cleaned/
+audio_path: HP1_ECoG_conditional/denoised_fixed-transcript/
+ecog_path: HP1_ECoG_conditional/denoised_fixed-transcript/
 data_base_dir : /home/passch/data/
 segment_length: 1000 # In milliseconds
 sampling_rate: 16000 # audio sampling rate

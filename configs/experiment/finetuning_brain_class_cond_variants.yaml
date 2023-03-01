@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
-  - /model: brain_conditional
-  - /dataset: hp1_ecog_conditional
+  - /model: brain_class_conditional
+  - /dataset: brain_cond_variants
 
 diffusion:
   T: 200

@@ -1,4 +1,4 @@
-# Config file for the VariaNTS dataset loaded from a .csv file, 
+# Fine-tuning dataset for HP ECoG data mapped to VariaNTS audio data
 
 _name_: variants_brain
 splits_path: datasplits/VariaNTS/HP_synth_sameval_aug_cleaned_ecog-cond_90-10/

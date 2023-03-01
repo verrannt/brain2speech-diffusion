@@ -1,5 +1,6 @@
-# Config file for the VariaNTS dataset loaded from a .csv file pointing to the 
-# appropriate locations on disk
+# Pre-training on the VariaNTS dataset, both unconditional and class-conditional.
+# In the class conditional setting, conditional input will be created automatically
+# from filenames and does not have to be specified here.
 
 _name_: variants
 splits_path: datasplits/VariaNTS/HP_synth_sameval_aug_90-10/

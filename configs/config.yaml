@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - experiment: variants
+  - experiment: pretraining_uncond_variants
 
 train: # Not used in generate.py
   name: null # Name of experiment (prefix of experiment name)
