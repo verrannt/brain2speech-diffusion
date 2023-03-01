@@ -28,16 +28,17 @@ class BrainClassEncoder(nn.Module):
     def __init__(
         self, 
         n_classes : int = 10,
+        c_brain_in : int = 32,
         c_mid : int = 64,
         c_out : int = 128,
         **kwargs,
     ):
         super().__init__()
 
-        # Different classifiers can be tested here by swapping out the class. Note that the required key-word arguments
+        # Different classifiers can be tested here by swapping out the class. Note that the required arguments
         # have to be appropriately specified in the model config file.
-        self.brain_classifier = BrainClassifierV1(in_nodes=kwargs['c_brain_in'], n_classes=n_classes)
-        # self.brain_classifier = BrainClassifierV2(n_classes=n_classes)
+        self.brain_classifier = BrainClassifierV1(in_nodes=c_brain_in, n_classes=n_classes)
+        # self.brain_classifier = BrainClassifierV3(in_channels=c_brain_in, n_classes=n_classes)
 
         # The second part is identical to the class encoder, so it will be reused.
         self.class_conditioner = ClassEncoder(n_classes=n_classes, c_mid=c_mid, c_out=c_out)
@@ -127,41 +128,31 @@ class BrainClassifierV2(nn.Module):
         return x
 
 
-# class BrainClassifierV3(nn.Module):
-#     def __init__(self) -> None:
-#         super().__init__()
+class BrainClassifierV3(nn.Module):
+    def __init__(self, in_channels: int, n_classes:int) -> None:
+        super().__init__()
 
-#         self.conv1 = Conv2D(2, 64, kernel_size=(1,3), stride=(1,3), padding=0)
-#         self.bn1 = nn.BatchNorm2d(64)
-#         self.pool1 = nn.MaxPool2d(kernel_size=(1,2), stride=(1,2))
+        self.network = nn.Sequential(
+            Conv2D(in_channels, 64, kernel_size=(1,3), stride=(1,2), padding=(0,1)),
+            nn.ReLU(inplace=True),
+            # nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),
 
-#         self.conv2 = Conv2D(64, 128, kernel_size=(3,3), stride=(2,2), padding=0)
-#         self.bn1 = nn.BatchNorm2d(128)
-#         self.pool2 = nn.MaxPool2d(kernel_size=(1,2), stride=(1,2))
+            Conv2D(64, 128, kernel_size=(2,3), stride=(1,1), padding=(0,1)),
+            nn.ReLU(inplace=True),
+            # nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),
 
-#         self.lin1 = nn.Linear(1152, 512)
-#         self.lin2 = nn.Linear(512, 55)
+            nn.Flatten(),
 
+            nn.Linear(6400, 3200),
+            nn.ReLU(inplace=True),
 
-#         self.relu = nn.ReLU(inplace=True)
-#         self.softmax = nn.Softmax(1)
+            nn.Linear(3200, 1600),
+            nn.ReLU(inplace=True),
+            
+            nn.Linear(1600, n_classes),
+            nn.Softmax(1),
+        )
 
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         x = self.conv1(x)
-#         x = self.bn1(x)
-#         x = self.relu(x)
-#         x = self.pool1(x)
-        
-#         x = self.conv2(x)
-#         x = self.bn2(x)
-#         x = self.relu(x)
-#         x = self.pool2(x)
-
-#         x = x.flatten(1)
-
-#         x = self.lin1(x)
-#         x = self.relu(x)
-#         x = self.lin2(x)
-#         x = self.softmax(x)
-        
-#         return x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.network(x)
+        return x
