@@ -124,7 +124,7 @@ Examples of how experiments can be run. Given parameters may need to be changed.
 > Note: You also have to specify `generate.conditional_signal=null` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=variants_uncond_pretraining diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_signal=null
+CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=pretraining_uncond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_signal=null
 ```
 
 #### Class-Conditional Pretraining
@@ -132,19 +132,19 @@ CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=
 > Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=variants_class_cond_pretraining diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_type=class generate.conditional_signal=dag
+CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=pretraining_class_cond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_type=class generate.conditional_signal=dag
 ```
 
 #### Brain-Conditional Fine-Tuning
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=brain_cond_finetuning diffusion.T=5 train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=finetuning_brain_cond_hp diffusion.T=5 model.freeze_generator=false train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
 ```
 
 #### Brain + Class Conditional Fine-Tuning
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python diffwave/train.py train.name=delete-me experiment=brain_class_cond_finetuning diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=finetuning_brain_class_cond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
 ```
 
 
