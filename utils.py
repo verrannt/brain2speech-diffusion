@@ -178,9 +178,7 @@ def create_output_directory(
 
     # Create output directory if it doesn't exist
     output_directory = os.path.join('exp', experiment_name, sub_directory)
-    if not os.path.isdir(output_directory):
-        os.makedirs(output_directory)
-        os.chmod(output_directory, 0o775)
+    os.makedirs(output_directory, mode=0o775, exist_ok=True)
         
     return experiment_name, output_directory
 
