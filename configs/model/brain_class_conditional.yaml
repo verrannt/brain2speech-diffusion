@@ -1,3 +1,6 @@
+# Brain + class-conditional model, i.e. a model whose speech generator has been pretrained
+# using the class-conditional setting and is now being fine-tuned on brain data 
+
 unconditional: false
 in_channels: 1
 out_channels: 1
