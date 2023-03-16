@@ -147,6 +147,17 @@ CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-
 CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=finetuning_brain_class_cond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
 ```
 
+### Experiment Overview Table
+
+Experiment                   | Model                                        | Conditional Input | Speech Data | Splits
+-----------------------------|----------------------------------------------|-------------------|-------------|-----------------
+Uncond. Pretraining          | DiffWave                                     | -                 | VariaNTS    | full VariaNTS
+Classcond. Pretraining       | DiffWave + Class Encoder                     | Class vector      | VariaNTS    | full VariaNTS
+Brainclasscond. Finetuning   | DiffWave + Class Encoder + Brain Classifier  | HP ECoG Data      | VariaNTS    | reduced VariaNTS*
+Braincond. Finetuning (VNTS) | DiffWave + Brain Encoder                     | HP ECoG Data      | VariaNTS    | reduced VariaNTS*
+Braincond. Finetuning (HP)   | DiffWave + Brain Encoder                     | HP ECoG Data      | HP Speech   | HP splits
+
+\* reduced VariaNTS means that words which are not present in the Harry Potter ECoG data were removed, in order to correctly map ECoG to speech data.
 
 ---
 [🔝 Back to Top](#-brain2speech-diffusion-speech-generation-from-brain-activity-using-diffusion-models)
