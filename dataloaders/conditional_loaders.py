@@ -11,14 +11,6 @@ from torch import Tensor
 from . import utils
 
 
-# Indexes for the electrodes covering the auditory cortex in subject 1
-AUDITORY_CORTEX_IDX = [13, 14, 17, 18, 19, 20, 21, 22]
-
-# Range for the ECoG values (Careful, this might need to be changed for different patient recordings)
-ECOG_MIN = 5.0
-ECOG_MAX = 10.5
-
-
 def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_numbering: bool = True) -> str:
     """ Extract the word from a given filepath pointing to an audio file on disk. """
     # Get the last part of the path (i.e. just the filename)
@@ -101,15 +93,21 @@ class ECOGLoader(ABC):
         return ecog
 
     @staticmethod
-    def process_ecog(ecog_file: str, segment_length: int) -> Tensor:
+    def process_ecog(ecog_file: str, segment_length: int = None) -> Tensor:
+        """
+        Load an ECoG array as PyTorch `Tensor` from disk.
+
+        Params:
+        ---
+        `ecog_file`: Path to the stored ECoG file as numpy array on disk.
+        `segment_length`: Deprecated argument here for API compatibility; always ignored.
+
+        Returns:
+        ---
+        `ecog`: The loaded ECoG array as PyTorch `Tensor`.
+        """
         # Load from path
         ecog = torch.from_numpy(np.load(ecog_file)).float()
-        # Select auditory cortex electrodes only
-        # ecog = ecog[AUDITORY_CORTEX_IDX, :, :]
-        # Normalize
-        ecog = utils.normalize(ecog, ECOG_MIN, ECOG_MAX)
-        # Adjust to designated length
-        ecog = utils.fix_length_3d(ecog, segment_length)
         return ecog
 
     @abstractmethod
