@@ -43,17 +43,17 @@ def dataloader(
 
     Parameters
     ----------
-    dataset_cfg:
+    `dataset_cfg`:
         The configuration options for the dataset, loaded from a Hydra config file.
-    batch_size:
+    `batch_size`:
         How many datapoints to yield at each iteration of the dataloader
-    is_distributed:
+    `is_distributed`:
         Whether this is a distributed training run or not. If `True`, training data will be subset such that the
         different GPUs get access to different parts of the dataset only.
-    unconditional:
+    `unconditional`:
         Whether the model to be trained is a conditional or unconditional model. This determines how data is loaded for
         some datasets, or may cause an `AssertionError` if a dataset is incompatible with it.
-    uses_test_set:
+    `uses_test_set`:
         Whether a test split is provided and a test dataloader should be created.
     
     Returns
@@ -63,14 +63,14 @@ def dataloader(
 
     Raises
     ------
-    AssertionError
-        if `unconditional==False` but the dataset name denoted in the `dataset_cfg` is 'variants-brain' or 
-        'brain-conditional', since both of these datasets require a conditional model.
-    AssertionError
-        if the dataset name denoted in the `dataset_cfg` is 'variants-brain', but the `dataset_cfg` does not have the 
+    `AssertionError`
+        if `unconditional==False` but the dataset name denoted in the `dataset_cfg` is 'brain_cond_variants' or 
+        'brain_cond_hp', since both of these datasets require a conditional model.
+    `AssertionError`
+        if the dataset name denoted in the `dataset_cfg` is 'brain_cond_variants', but the `dataset_cfg` does not have the 
         'ecog_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
         and the ECoG recordings, so a separate train/val split has to be provided for the ECoG recordings.
-    ValueError
+    `ValueError`
         if the `_name_` specified in the `dataset_cfg` is unknown.
     """
     
@@ -81,7 +81,7 @@ def dataloader(
     # Convert segment length from milliseconds to frames
     segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
     # For datasets using conditional brain inputs, need to also do processing for the ECoG files
-    if dataset_name == "variants_brain" or dataset_name == "hp1_ecog_conditional":
+    if dataset_name == "brain_cond_variants" or dataset_name == "brain_cond_hp":
         segment_length_ecog = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_ecog / 1000)
         ecog_path = Path(dataset_cfg.ecog_path)
 
@@ -92,7 +92,7 @@ def dataloader(
             conditional_loader = ClassConditionalLoader(
                 words_file=join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
 
-    elif dataset_name == "variants_brain":
+    elif dataset_name == "brain_cond_variants":
         assert not unconditional
         # Use random conditional loader with separate train and val splits for the ECoG files, because we don't have a
         # 1-to-1 matching between ECoG and VariaNTS data
@@ -103,7 +103,7 @@ def dataloader(
             seed = SHUFFLING_SEED,
             segment_length = segment_length_ecog)
             
-    elif dataset_name == "hp1_ecog_conditional":
+    elif dataset_name == "brain_cond_hp":
         assert not unconditional
         # Use exact conditional loader to get the right ECoG matrix for every audio file
         conditional_loader = ECOGExactLoader(
