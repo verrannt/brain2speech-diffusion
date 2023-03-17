@@ -71,9 +71,9 @@ There are additional configuration options to control the W&B logger:
 #### Debugging
 
 If you want to quickly test code, you can run smaller versions of a dataset for debugging:
-* Pass `dataset.segment_length=100` to cut all audio segments to 100 ms
+* Pass `dataset.segment_length=10` to cut all audio segments to 10 ms
 * When using VariaNTS words as audio data, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch (assuming you have downloaded the provided datasplits, else you may create your own small subset)
-* Pass `diffusion.T=20` to reduce the number of diffusion steps in generation
+* Pass `diffusion.T=5` to reduce the number of diffusion steps in generation
 
 ### Generating
 
@@ -119,12 +119,22 @@ This codebase was originally forked from the [DiffWave-SaShiMi repository by alb
 
 Examples of how experiments can be run. Given parameters may need to be changed.
 
+In case only a subset of all available GPUs should be used, add `CUDA_VISIBLE_DEVICES=<id>,<id>` before calling the script.
+
+If debugging, add `diffusion.T=5` as flag, which will reduce the number of diffusion steps during generation.
+
 #### Unconditional Pretraining
 
 > Note: You also have to specify `generate.conditional_signal=null` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=pretraining_uncond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_signal=null
+python brain2speech-diffusion/train.py \
+    train.name=delete-me \
+    experiment=pretraining_uncond_variants \
+    train.n_epochs=2 \
+    train.epochs_per_ckpt=1 \
+    train.iters_per_logging=1 \
+    generate.conditional_signal=null
 ```
 
 #### Class-Conditional Pretraining
@@ -132,19 +142,52 @@ CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-
 > Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=pretraining_class_cond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 generate.conditional_type=class generate.conditional_signal=dag
+python brain2speech-diffusion/train.py \
+    train.name=delete-me \
+    experiment=pretraining_class_cond_variants \
+    train.n_epochs=2 \
+    train.epochs_per_ckpt=1 \
+    train.iters_per_logging=1 \
+    generate.conditional_type=class \
+    generate.conditional_signal=dag
 ```
 
 #### Brain-Conditional Fine-Tuning
 
+Harry Potter speech data:
+
 ```c
-CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=finetuning_brain_cond_hp diffusion.T=5 model.freeze_generator=false train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+python brain2speech-diffusion/train.py \
+    train.name=delete-me \
+    experiment=finetuning_brain_cond_hp \
+    model.freeze_generator=false \
+    train.n_epochs=2 \
+    train.epochs_per_ckpt=1 \
+    train.iters_per_logging=1
 ```
+
+VariaNTS speech data:
+
+```c
+python brain2speech-diffusion/train.py \
+    train.name=delete-me \
+    experiment=finetuning_brain_cond_variants \
+    model.freeze_generator=true \
+    train.n_epochs=2 \
+    train.epochs_per_ckpt=1 \
+    train.iters_per_logging=1
+```
+
 
 #### Brain + Class Conditional Fine-Tuning
 
 ```c
-CUDA_VISIBLE_DEVICES=1 python brain2speech-diffusion/train.py train.name=delete-me experiment=finetuning_brain_class_cond_variants diffusion.T=5 dataset.splits_path=datasplits/VariaNTS/tiny_subset train.n_epochs=2 train.epochs_per_ckpt=1 train.iters_per_logging=1 wandb.mode=online
+python brain2speech-diffusion/train.py \
+    train.name=delete-me \
+    experiment=finetuning_brain_class_cond_variants \
+    train.n_epochs=2 \
+    train.epochs_per_ckpt=1 \
+    train.iters_per_logging=1
 ```
 
 ### Experiment Overview Table
