@@ -16,6 +16,6 @@ freeze_generator: true
 pretrained_generator: /home/passch/exp/Uncond-PT-v8/checkpoint/250.pkl
 encoder_config:
   name: brain_encoder
-  c_in: 32
-  c_mid: 64
+  c_in: 48
+  c_mid: 96
   c_out: 128
