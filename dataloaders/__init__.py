@@ -149,16 +149,12 @@ def dataloader(
         batch_size=batch_size,
         sampler=train_sampler,
         num_workers=4,
-        pin_memory=False,
-        drop_last=True,
     )
 
     valloader = DataLoader(
         valset,
         batch_size=batch_size,
         num_workers=4,
-        pin_memory=False,
-        drop_last=True,
     )
 
     if uses_test_set:
@@ -166,8 +162,6 @@ def dataloader(
             testset,
             batch_size=batch_size,
             num_workers=4,
-            pin_memory=False,
-            drop_last=True,
         )
     else:
         testloader = None
