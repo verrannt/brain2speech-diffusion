@@ -35,10 +35,10 @@ class ClassEncoder(nn.Module):
         self.projection = nn.Sequential(
             # [B, 1, 512]
             conv1,
-            # nn.ReLU(inplace=True),
+            # nn.ReLU(),
             # [B, C_MID, 4083]
             conv2,
-            # nn.ReLU(inplace=True),
+            # nn.ReLU(),
             # [B, C_OUT, 16323]
         )
 

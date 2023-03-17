@@ -55,11 +55,11 @@ class BrainClassifierV1(nn.Module):
         super().__init__()
         self.network = nn.Sequential(
             nn.Linear(in_nodes, in_nodes//2), 
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             # nn.Dropout(0.5),
 
             nn.Linear(in_nodes//2, in_nodes//4),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             # nn.Dropout(0.5),
 
             nn.Linear(in_nodes//4, n_classes),
@@ -83,28 +83,28 @@ class BrainClassifierV2(nn.Module):
         self.network = nn.Sequential(
             # Temporal filtering
             Conv2D(2, 32, 3, (1,2), 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm2d(32),
             nn.Dropout(0.1),
             
             Conv2D(32, 64, 3, (1,2), 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm2d(64),
             nn.Dropout(0.1),
             
             Conv2D(64, 128, 3, (1,2), 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm2d(128),
             nn.Dropout(0.1),
             
             # Spatio-temporal filtering
             Conv2D(128, 256, 3, (2,3), 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm2d(256),
             nn.Dropout(0.1),
             
             Conv2D(256, 256, 3, (2,3), 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm2d(256),
             nn.Dropout(0.1),
             
@@ -115,7 +115,7 @@ class BrainClassifierV2(nn.Module):
 
             # Classification
             nn.Linear(256, 128),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.BatchNorm1d(128),
             nn.Dropout(0.5),
             
@@ -134,20 +134,20 @@ class BrainClassifierV3(nn.Module):
 
         self.network = nn.Sequential(
             Conv2D(in_channels, 64, kernel_size=(1,3), stride=(1,2), padding=(0,1)),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             # nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),
 
             Conv2D(64, 128, kernel_size=(2,3), stride=(1,1), padding=(0,1)),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             # nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),
 
             nn.Flatten(),
 
             nn.Linear(6400, 3200),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
 
             nn.Linear(3200, 1600),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             
             nn.Linear(1600, n_classes),
             nn.Softmax(1),
