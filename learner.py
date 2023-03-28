@@ -155,6 +155,7 @@ class Learner():
         self.load_checkpoint(checkpoint_directory)
         self.load_pretrained_generator()
 
+        # TODO The whole classifier tester logic can be deprecated as it's not applicable anymore
         # If fine-tuning with the BrainClassEncoder, we use a helper class to collect loss values for just the
         # brain classifier part of the encoder
         if self.model.__class__.__name__=='DiffWaveConditional' and \
