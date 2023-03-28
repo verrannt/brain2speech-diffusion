@@ -54,23 +54,22 @@ class BrainClassifierV1(nn.Module):
     def __init__(self, in_nodes: int, n_classes: int, **kwargs) -> None:
         super().__init__()
         self.network = nn.Sequential(
+            nn.Flatten(),
             nn.Linear(in_nodes, in_nodes//2), 
             nn.ReLU(),
-            # nn.Dropout(0.5),
+            nn.LayerNorm(in_nodes//2),
+            nn.Dropout(0.4),
 
             nn.Linear(in_nodes//2, in_nodes//4),
             nn.ReLU(),
-            # nn.Dropout(0.5),
+            nn.LayerNorm(in_nodes//4),
+            nn.Dropout(0.3),
 
             nn.Linear(in_nodes//4, n_classes),
             nn.Softmax(1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Flatten the input before processing. CxExT must be equal to IN_NODES
-        # [B, C, E, T] -> [B, CxExT]
-        x = x.flatten(1)
-        
         # [B, CxExT] -> [B, OUT_NODES]
         x = self.network(x)
         
