@@ -78,6 +78,7 @@ class DiffWaveConditional(nn.Module):
             # should exactly resemble the class encoder (conditioner) in the pretraining model, so we have no tolerance 
             # for key mismatches and set strict==True
             self.encoder.class_conditioner.load_state_dict(checkpoint_dict['conditioner_state_dict'], strict=True)
+            print('Class conditioner part of BrainClassEncoder loaded from pretraining model')
 
             # If freezing of the generator is desired, we also freeze the class-conditioner part of the network, as 
             # they were trained together
