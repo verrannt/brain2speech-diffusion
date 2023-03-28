@@ -18,4 +18,4 @@ encoder_config:
   n_classes: 55
   c_mid: 64
   c_out: 128
-  c_brain_in: 1600 # TODO Has to be adjusted to 1x48 electrodes for subj. 2 instead of 2x32 from subj. 1
+  c_brain_in: 2640 # 48x55
