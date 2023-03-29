@@ -101,7 +101,7 @@ All configuration options can be found in the `configs/config.yaml` file's `gene
 
 #### Example
 ```s
-python diffwave/generate.py experiment=my-custom-experiment generate.name=Example-Model-v2 generate.conditional_type=class generate.conditional_signal=dag
+python brain2speech-diffusion/generate.py experiment=my-custom-experiment generate.name=Example-Model-v2 generate.conditional_type=class generate.conditional_signal=dag
 ```
 
 ### Pretrained Models
