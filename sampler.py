@@ -81,12 +81,18 @@ class Sampler:
         self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(**self.diffusion_cfg)
 
     @torch.no_grad()
-    def run(self, ckpt_epoch: Union[str, int], model_cfg: DictConfig, model: torch.nn.Module = None) -> None:
+    def run(
+        self, 
+        ckpt_epoch: Union[str, int], 
+        model_cfg: DictConfig, 
+        model: torch.nn.Module = None,
+        output_subdir: str = 'waveforms',
+    ) -> None:
         print("\nGenerating:")
     
         # Get output directory for waveforms for this run
         experiment_name, waveform_directory = utils.create_output_directory(
-            self.name, model_cfg, self.diffusion_cfg, self.dataset_cfg, 'waveforms')
+            self.name, model_cfg, self.diffusion_cfg, self.dataset_cfg, output_subdir)
 
 
         # Load model if not given
