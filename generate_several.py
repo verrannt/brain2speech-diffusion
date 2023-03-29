@@ -11,7 +11,7 @@ python brain2speech-diffusion/generate_several.py \
     experiment=pretraining_uncond_variants \
     generate.name=Uncond-PT-v8 \
     generate.conditional_type=None \
-    generate.ckpt_epoch=250
+    generate.ckpt_epoch=250 \
     +use_val=False
 
 # Classconditional Pretraining
@@ -19,7 +19,7 @@ python brain2speech-diffusion/generate_several.py \
     experiment=pretraining_class_cond_variants \
     generate.name=VariaNTSWords-CC-v2 \
     generate.conditional_type=class \
-    generate.ckpt_epoch=270
+    generate.ckpt_epoch=270 \
     +use_val=False
 
 # Brainconditional Finetuning with Harry Potter speech data
