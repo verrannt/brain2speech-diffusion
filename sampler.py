@@ -80,8 +80,6 @@ class Sampler:
         # Map diffusion hyperparameters to GPU
         self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(**self.diffusion_cfg)
 
-        self.model = None
-
     @torch.no_grad()
     def run(self, ckpt_epoch: Union[str, int], model_cfg: DictConfig, model: torch.nn.Module = None) -> None:
         print("\nGenerating:")
