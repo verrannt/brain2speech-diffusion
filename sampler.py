@@ -67,7 +67,7 @@ class Sampler:
         self.n_samples = n_samples
         self.batch_size = batch_size
         self.conditional_signal = conditional_signal
-        assert conditional_type == "brain" or conditional_type == "class", \
+        assert conditional_type == "brain" or conditional_type == "class" or conditional_type is None, \
             "The type of conditional input can only be 'brain' or 'class'"
         self.conditional_type = conditional_type
 
