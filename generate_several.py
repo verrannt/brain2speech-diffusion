@@ -60,23 +60,27 @@ from sampler import Sampler
 from utils import HidePrints, create_output_directory
 
 
-def get_files(conditional_type, split, n_samples_per_word=16):
-    with open('data/HP_VariaNTS_intersection.txt', 'r') as f:
-        words = f.read().split(',')
-
+def get_files(conditional_type, split, data_base_dir, n_samples_per_word=16):
     if conditional_type == 'brain':
-        return get_files_from_datasplit(split, n_samples_per_word)
-    elif conditional_type == 'class':
-        return [(word, n_samples_per_word) for word in words]
+        data_path = os.path.join(data_base_dir, "HP1_ECoG_conditional/sub-002") 
+        split_path = os.path.join(data_base_dir, f"datasplits/HP1_ECoG_conditional/sub-002/{split}.csv")
+        return get_files_from_datasplit(split_path, n_samples_per_word), data_path
+
+    with open(os.path.join(data_base_dir, "HP_VariaNTS_intersection.txt"), 'r') as f:
+        words = f.read().split(',')
+    
+    if conditional_type == 'class':
+        return [(word, n_samples_per_word) for word in words], None
+    
     elif conditional_type is None:
-        return [(None, n_samples_per_word) for _ in words]
+        return [(None, n_samples_per_word) for _ in words], None
+    
     else:
         raise ValueError('Unrecognized conditional input type:', conditional_type)
 
-def get_files_from_datasplit(split, n_samples_per_word=16):
+def get_files_from_datasplit(split_path, n_samples_per_word=16):
     # Read the files for the respective split
-    ecog_splits = "/home/passch/data/datasplits/HP1_ECoG_conditional/sub-002"
-    with open(os.path.join(ecog_splits, f"{split}.csv"), "r") as f:
+    with open(split_path, "r") as f:
         files = f.read().split(',')
         files = [fn.replace('.wav', '.npy') for fn in files]
 
@@ -110,13 +114,15 @@ def main(cfg: DictConfig) -> None:
         cfg.generate.conditional_type = None
 
     if cfg.use_val == True:
-        files = get_files(cfg.generate.conditional_type, 'val', 16) # TODO
+        files, data_path = get_files(
+            cfg.generate.conditional_type, 'val', 
+            cfg.dataset.data_base_dir, 16)
     else:
-        files = get_files(cfg.generate.conditional_type, 'train', 16) # TODO
+        files, data_path = get_files(
+            cfg.generate.conditional_type, 'train', 
+            cfg.dataset.data_base_dir, 16)
     
     print(files)
-
-    data_path = "/home/passch/data/HP1_ECoG_conditional/sub-002" # Only needed for brain models
 
     ckpt_epoch = cfg.generate.pop('ckpt_epoch')
 
