@@ -1,50 +1,60 @@
 """
-USAGE:
------
-
 Note that for the pretraining models, the value of use_val does not matter, as
 there is no train/validation split when there is no brain conditional input. 
 The argument still has to be provided, else an exception is thrown by Hydra.
 
-# Unconditional Pretraining
-python brain2speech-diffusion/generate_several.py \
-    experiment=pretraining_uncond_variants \
-    generate.name=Uncond-PT-v8 \
-    generate.conditional_type=None \
-    generate.ckpt_epoch=250 \
-    +use_val=False
+For the finetuning models, we need to decide how to generate data, since the 
+distribution of the ECoG dataset is so uneven. Two options are to generate *n* 
+audio samples per one ECoG sample (giving us an uneven distribution of audio 
+samples), or to generate *k* audio samples *per* class, such that every word 
+class has the same number of audio samples available. Here the latter option 
+is chosen, as it ensures that the generated data match that of the pretraining 
+models as well as that of the VariaNTS speech data.
 
 # Classconditional Pretraining
 python brain2speech-diffusion/generate_several.py \
     experiment=pretraining_class_cond_variants \
-    generate.name=VariaNTSWords-CC-v2 \
+    generate.name=ClassCond-PT-v3 \
     generate.conditional_type=class \
-    generate.ckpt_epoch=270 \
+    generate.ckpt_epoch=180 \
     +use_val=False
 
 # Brainconditional Finetuning with Harry Potter speech data
 python brain2speech-diffusion/generate_several.py \
     experiment=finetuning_brain_cond_hp \
-    generate.name=BrainCond-FT-HP-v4 \
+    generate.name=BrainCond-FT-HP-v5 \
     generate.conditional_type=brain \
-    generate.ckpt_epoch=110 \
+    generate.ckpt_epoch=70 \
     +use_val=False
 
 # Brainconditional Finetuning with VariaNTS speech data
 python brain2speech-diffusion/generate_several.py \
     experiment=finetuning_brain_cond_variants \
-    generate.name=BrainCond-FT-VariaNTS-v2 \
+    generate.name=BrainCond-FT-VariaNTS-v3 \
     generate.conditional_type=brain \
-    generate.ckpt_epoch=800 \
+    generate.ckpt_epoch=140 \
     +use_val=False
 
 # Brainclassconditional Finetuning with VariaNTS speech data
 python brain2speech-diffusion/generate_several.py \
     experiment=finetuning_brain_class_cond_variants \
-    generate.name=BrainClassCond-FT-VariaNTS-v7 \
+    generate.name=BrainClassCond-FT-VariaNTS-v9 \
     generate.conditional_type=brain \
     generate.ckpt_epoch=800 \
     +use_val=False
+
+# Unconditional Pretraining
+# Note: for the unconditional model, the standard generate.py script should be
+# used, as no separation by word classes is required, and parallelization can
+# therefore be used easily.
+python brain2speech-diffusion/generate.py \
+    experiment=pretraining_uncond_variants \
+    generate.name=Uncond-PT-v9 \
+    generate.conditional_type=null \
+    generate.conditional_signal=null \
+    generate.ckpt_epoch=230 \
+    generate.n_samples=880 \
+    generate.batch_size=16
 """
 
 
@@ -57,7 +67,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from dataloaders.conditional_loaders import get_word_from_filepath
 from sampler import Sampler
-from utils import HidePrints, create_output_directory
+from utils import create_output_directory
 
 
 def get_files(conditional_type, split, data_base_dir, n_samples_per_word=16):
