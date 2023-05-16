@@ -13,7 +13,9 @@ This repository proposes a diffusion-based generative model for the synthesis of
 <img width="400" title="Speech Decoding From The Brain" alt="Model Architecture" src="images/Speech Decoding from Brain.png?raw=true">
 </p>
 
-## More explanations...
+## Samples
+
+Speech samples generated for all models are provided [here](https://drive.google.com/drive/folders/1lk4U6UN6Ml8OI7Jb94BzS1VExi8DliMi).
 
 ## Table of Contents
 * [Data](#data)
