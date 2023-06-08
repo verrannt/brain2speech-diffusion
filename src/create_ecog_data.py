@@ -1,8 +1,8 @@
 """
 python src/create_ecog_data.py \
-    -i /home/passch/thesis/data/hp_reading \
-    -o /home/passch/data/HP1_ECoG_conditional/sub-002/ \
-    -t /home/passch/thesis/data/HP_VariaNTS_intersection.txt \
+    -i data/hp_reading \
+    -o data/HP1_ECoG_conditional/sub-002/ \
+    -t data/HP_VariaNTS_intersection.txt \
     -sr 100 \
     -s 2
 """
