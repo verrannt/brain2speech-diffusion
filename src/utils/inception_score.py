@@ -21,13 +21,15 @@ class InceptionScore():
         res_list = [self.get_mfcc(fn) for fn in tqdm(file_list, disable=not self.verbose)]
         return res_list
 
+    @classmethod
     def get_mfcc(self, audio_file):
         samples, sample_rate = librosa.load(audio_file, sr=None)
         mfcc = librosa.feature.mfcc(y=samples, sr=sample_rate, hop_length=1024, n_mfcc=40)
         return mfcc
 
-    # calculate the inception score for p(y|x)
+    @classmethod
     def calculate_inception_score(self, p_yx, eps=1e-16):
+        """ Calculate the Inception Score for p(y|x) """
         # calculate p(y)
         p_y = np.expand_dims(p_yx.mean(axis=0), 0)
         # kl divergence for each image
