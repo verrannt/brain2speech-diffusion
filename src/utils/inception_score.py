@@ -4,14 +4,12 @@ https://machinelearningmastery.com/how-to-implement-the-inception-score-from-scr
 """
 
 import librosa
-import sklearn
 import pickle
 from tqdm import tqdm
-from multiprocessing import Pool
 import numpy as np
 
 class InceptionScore():
-    def __init__(self, clf_path='speech_classifier.pickle', audio_load_workers=8, verbose=False):
+    def __init__(self, clf_path, audio_load_workers=8, verbose=False):
         with open(clf_path, 'rb') as f:
             self.clf = pickle.load(f)
         self.audio_load_workers = audio_load_workers
