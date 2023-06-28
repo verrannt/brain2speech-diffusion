@@ -65,9 +65,8 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
-from dataloaders.conditional_loaders import get_word_from_filepath
 from sampler import Sampler
-from utils import create_output_directory
+from utils.generic import create_output_directory, get_word_from_filepath
 
 
 def get_files(conditional_type, split, data_base_dir, n_samples_per_word=16):

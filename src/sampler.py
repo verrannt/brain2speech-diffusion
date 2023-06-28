@@ -7,10 +7,9 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 
-from dataloaders.conditional_loaders import ECOGLoader, get_word_from_filepath
-from dataloaders import ClassConditionalLoader
+from dataloaders.conditional_loaders import ECOGLoader, ClassConditionalLoader
 from models import construct_model
-import utils
+from utils.generic import *
 
 
 class Sampler:
@@ -78,7 +77,7 @@ class Sampler:
         assert self.n_samples % self.batch_size == 0
 
         # Map diffusion hyperparameters to GPU
-        self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(**self.diffusion_cfg)
+        self.diffusion_hyperparams = calc_diffusion_hyperparams(**self.diffusion_cfg)
 
     @torch.no_grad()
     def run(
@@ -91,7 +90,7 @@ class Sampler:
         print("\nGenerating:")
     
         # Get output directory for waveforms for this run
-        experiment_name, waveform_directory = utils.create_output_directory(
+        experiment_name, waveform_directory = create_output_directory(
             self.name, model_cfg, self.diffusion_cfg, self.dataset_cfg, output_subdir)
 
 
@@ -202,13 +201,13 @@ class Sampler:
 
 
         model = construct_model(model_cfg).cuda()
-        utils.print_size(model)
+        print_size(model)
         model.eval()
 
         print(f'Loading checkpoint at epoch {ckpt_epoch}')
         ckpt_path = os.path.join('exp', experiment_name, 'checkpoint')
         if ckpt_epoch == 'max':
-            ckpt_epoch = utils.find_max_epoch(ckpt_path)
+            ckpt_epoch = find_max_epoch(ckpt_path)
         ckpt_epoch = int(ckpt_epoch)
 
         try:

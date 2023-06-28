@@ -3,27 +3,13 @@ import os
 from pathlib import Path
 import re
 from typing import List, Optional
+import sys
+sys.path.append('..')
+from utils.generic import get_word_from_filepath
 
 import numpy as np
 import torch
 from torch import Tensor
-
-from . import utils
-
-
-def get_word_from_filepath(filepath: str, uses_augmentation: bool = True, uses_numbering: bool = True) -> str:
-    """ Extract the word from a given filepath pointing to an audio file on disk. """
-    # Get the last part of the path (i.e. just the filename)
-    filepath = filepath.split('/')[-1]
-    # Get the filename before the file extension
-    filepath = filepath.split('.')[0]
-    # Augmented files are named according to {word}_{aug-type}.wav, so this removes the augmentation from the name
-    if uses_augmentation:
-        filepath = filepath.split('_')[0]
-    # Some files (e.g. ECoG files) are numbered (e.g. goed1.npy), so this removes any digits from the name
-    if uses_numbering:
-        filepath = re.sub(r'[0-9]', '', filepath)
-    return filepath
 
 
 class ClassConditionalLoader:
