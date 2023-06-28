@@ -9,11 +9,10 @@ from tqdm import tqdm
 import wandb
 
 from dataloaders import dataloader
-from distributed_util import apply_gradient_allreduce, reduce_tensor
-from generate import generate
+from utils.distributed_util import apply_gradient_allreduce, reduce_tensor
 from models import construct_model
 from sampler import Sampler
-import utils
+import utils.training as train_utils
 
 
 class Learner():
@@ -99,7 +98,7 @@ class Learner():
             self.config_dict = OmegaConf.to_container(cfg, resolve=True)
         
         # Update the paths in the dataset config with the base path
-        self.dataset_cfg = utils.prepend_data_base_dir(self.dataset_cfg)
+        self.dataset_cfg = train_utils.prepend_data_base_dir(self.dataset_cfg)
 
         self.rank = rank
 
@@ -115,12 +114,12 @@ class Learner():
         if self.is_master:
             wandb.init(**self.wandb_cfg, config=self.config_dict)
 
-        _, checkpoint_directory = utils.create_output_directory(
+        _, checkpoint_directory = train_utils.create_output_directory(
             self.name, self.model_cfg, self.diffusion_cfg, self.dataset_cfg, 'checkpoint')
 
         # Map diffusion hyperparameters to GPU
         # Gives dictionary of all diffusion hyperparameters
-        self.diffusion_hyperparams = utils.calc_diffusion_hyperparams(
+        self.diffusion_hyperparams = train_utils.calc_diffusion_hyperparams(
             **self.diffusion_cfg, fast=False)
 
         self.sampler = Sampler(
@@ -140,7 +139,7 @@ class Learner():
         print('Data loaded')
 
         self.model = construct_model(self.model_cfg).cuda()
-        utils.print_size(self.model, verbose=False)
+        train_utils.print_size(self.model, verbose=False)
 
         if self.num_gpus > 1:
             self.model = apply_gradient_allreduce(self.model)
@@ -306,7 +305,7 @@ class Learner():
             Path to the checkpoint directory on disk, in which the pickled state dictionaries are to be found.
         """
         if self.ckpt_epoch == 'max':
-            self.ckpt_epoch = utils.find_max_epoch(checkpoint_directory)
+            self.ckpt_epoch = train_utils.find_max_epoch(checkpoint_directory)
         if self.ckpt_epoch >= 0:
             try:
                 # Load checkpoint file
