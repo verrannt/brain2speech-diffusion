@@ -227,9 +227,12 @@ def multi_proc(
             print(f"Unrecognized postprocess argument {postprocess}. " 
                     "Returning result list unchanged.")
             return res_list
-    except:
+    except Exception as e:
         # If anything goes wrong, e.g. because a 1-D list has been tried
         # to be flattened, simply return the default results
+        print("There was an exception postprocessing:")
+        print(e)
+        print("Will return the default unaltered results")
         return res_list
 
 def fix_length(array, desired_length: int):
