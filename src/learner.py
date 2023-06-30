@@ -146,7 +146,6 @@ class Learner():
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-        # self.loss_fn = MaskedMSELoss()
         self.loss_fn = torch.nn.MSELoss()
 
         # Load checkpoint
@@ -227,13 +226,12 @@ class Learner():
 
 
     def train_step(self, data: Tuple[Tensor, int, Union[Tensor, str], Tensor]):
-        audio, conditional_input, mask = self.unpack_input(data)
+        audio, conditional_input = self.unpack_input(data)
 
         self.optimizer.zero_grad()
         loss = self.compute_loss(
             audio,
             conditional_input=conditional_input,
-            mask=mask,
         )
 
         if self.num_gpus > 1:
@@ -248,12 +246,11 @@ class Learner():
 
 
     def val_step(self, data: Tuple[Tensor, int, Union[Tensor, str], Tensor]):
-        audio, conditional_input, mask = self.unpack_input(data)
+        audio, conditional_input = self.unpack_input(data)
 
         loss_value = self.compute_loss(
             audio, 
             conditional_input=conditional_input, 
-            mask=mask,
         )
         # Note that we do not call `reduce_tensor` on the loss here like we do 
         # in the train step, since validation only ever runs on rank 0 GPU.
@@ -262,8 +259,8 @@ class Learner():
 
     def unpack_input(
         self, 
-        data: Tuple[Tensor, int, Union[Tensor, str], Tensor, str]
-    ) -> Tuple[Tensor, Optional[Tensor], Optional[Tensor]]:
+        data: Tuple[Tensor, int, Union[Tensor, str], str]
+    ) -> Tuple[Tensor, Optional[Tensor]]:
         """
         Unpack a tuple of different data obtained from a dataloader, and move the unpacked data to GPU.
         
@@ -271,25 +268,22 @@ class Learner():
         ----------
         data:
             `Tuple` consisting of audio data (`Tensor`), its sampling rate (`int`), the conditional input (either 
-            `Tensor` if given, or empty `str` in the unconditional setting), and the loss mask (`Tensor`).
+            `Tensor` if given, or empty `str` in the unconditional setting), and the filename (`str`).
 
         Returns
         -------
         Tuple of the unpacked data as `Tensor`s on GPU, but without the sampling rate.
         """
-        audio, _, conditional_input, mask, _ = data
+        audio, _, conditional_input, _ = data
         
         audio = audio.cuda()
-        
-        if mask is not None:
-            mask = mask.cuda()
         
         if self.model_cfg.unconditional:
             conditional_input = None
         else:
             conditional_input = conditional_input.cuda()
         
-        return audio, conditional_input, mask
+        return audio, conditional_input
 
 
     def load_checkpoint(self, checkpoint_directory):
@@ -428,7 +422,7 @@ class Learner():
         )
 
 
-    def compute_loss(self, audio: Tensor, conditional_input: Optional[Tensor] = None, mask: Optional[Tensor] = None):
+    def compute_loss(self, audio: Tensor, conditional_input: Optional[Tensor] = None):
         """
         Compute the training loss of epsilon and epsilon_theta
 
@@ -439,8 +433,6 @@ class Learner():
         conditional_input:
             The conditional input in case the model being trained is a conditional model. Needs to be `None` in case
             of an unconditional model.
-        mask:
-            The mask for the loss function.
 
         Returns
         -------
@@ -462,7 +454,5 @@ class Learner():
         # predict epsilon according to epsilon_theta
         epsilon_theta = self.model((transformed_X, diffusion_steps.view(B,1)), conditional_input=conditional_input)
 
-        # NOTE Currently not using the masked loss anymore. If it should be reintroduced, the below needs to be 
-        # commented out, and self.loss_fn needs to be set to the custom masked loss object.
-        # return loss_fn(epsilon_theta, z, mask)
         return self.loss_fn(epsilon_theta, z)
+

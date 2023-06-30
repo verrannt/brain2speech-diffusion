@@ -76,7 +76,7 @@ class CSVDataset(Dataset):
 
         self.subset = subset
 
-    def __getitem__(self, n: int) -> Tuple[Tensor, int, Union[Tensor, str], Tensor, str]:
+    def __getitem__(self, n: int) -> Tuple[Tensor, int, Union[Tensor, str], str]:
         """
         Load the `n`-th file from the dataset
 
@@ -87,8 +87,7 @@ class CSVDataset(Dataset):
 
         Returns
         -------
-        The loaded audio, sampling rate, optional conditional signal, loss mask, and file path. See `load_audio()` 
-        for details.
+        The loaded audio, sampling rate, optional conditional signal, and file path. See `load_audio()` for details.
 
         Raises
         ------
@@ -101,10 +100,10 @@ class CSVDataset(Dataset):
     def __len__(self) -> int:
         return len(self._files)
 
-    def load_audio(self, file_path: str) -> Tuple[Tensor, int, Union[Tensor, str], Tensor, str]:
+    def load_audio(self, file_path: str) -> Tuple[Tensor, int, Union[Tensor, str], str]:
         """
-        Load an audio file, given its path on disk. Also returns the audio's sampling rate, a matching conditional
-        input if `self.conditional_loader` is given, and the corresponding loss mask.
+        Load an audio file, given its path on disk. Also returns the audio's sampling rate, and a matching conditional
+        input if `self.conditional_loader` is given.
 
         Parameters
         ----------
@@ -114,17 +113,13 @@ class CSVDataset(Dataset):
         Returns
         -------
         A tuple of the audio waveform (`Tensor`), the sampling rate (`int`), the conditional signal (either a `Tensor`
-        if a conditional loader is given, or an empty `str` if not), the loss mask (`Tensor`, same shape as audio), and 
-        the file path itself (`str`).
+        if a conditional loader is given, or an empty `str` if not), and the file path itself (`str`).
         """
         waveform, sample_rate = torchaudio.load(file_path)
-
-        # Norm waveform to designated length and get padding mask
-        waveform, mask = utils.fix_length_1d(waveform, self.segment_length)
 
         if self.conditional_loader is not None:
             conditional_signal = self.conditional_loader(file_path, set=self.subset)
         else:
             conditional_signal = ""
 
-        return (waveform, sample_rate, conditional_signal, mask, file_path)
+        return (waveform, sample_rate, conditional_signal, file_path)
