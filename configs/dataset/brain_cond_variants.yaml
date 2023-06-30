@@ -1,12 +1,12 @@
 # Fine-tuning dataset for HP ECoG data mapped to VariaNTS audio data
 
 _name_: brain_cond_variants
-splits_path: datasplits/VariaNTS/HP_synth_aug_brain-cond_90-10/
+splits_path: datasplits/VariaNTS/HP_b2s_90-10/
 # splits_path: datasplits/VariaNTS/tiny_subset
-audio_path: VariaNTS/VariaNTS_words_16kHz_HP_synth_aug/
+audio_path: VariaNTS/VariaNTS_words_HP/
 ecog_path: HP1_ECoG_conditional/sub-002/
 ecog_splits_path: datasplits/HP1_ECoG_conditional/sub-002/
-data_base_dir : /home/passch/data/
+data_base_dir : data/
 segment_length: 1000 # In milliseconds
 sampling_rate: 16000 # audio sampling rate
 sampling_rate_ecog: 100 # brain electrodes sampling rate

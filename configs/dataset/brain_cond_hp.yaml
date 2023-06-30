@@ -4,7 +4,7 @@ _name_: brain_cond_hp
 splits_path: datasplits/HP1_ECoG_conditional/sub-002/
 audio_path: HP1_ECoG_conditional/sub-002/
 ecog_path: HP1_ECoG_conditional/sub-002/
-data_base_dir : /home/passch/data/
+data_base_dir : data/
 segment_length: 1000 # In milliseconds
 sampling_rate: 16000 # audio sampling rate
 sampling_rate_ecog: 100 # brain electrodes sampling rate

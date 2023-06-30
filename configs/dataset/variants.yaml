@@ -3,8 +3,8 @@
 # from filenames and does not have to be specified here.
 
 _name_: variants
-splits_path: datasplits/VariaNTS/HP_synth_aug_90-10/
-audio_path: VariaNTS/VariaNTS_words_16kHz_HP_synth_aug/
-data_base_dir : /home/passch/data/
+splits_path: datasplits/VariaNTS/HP_90-10/
+audio_path: VariaNTS/VariaNTS_words_HP/
+data_base_dir : data/
 segment_length: 1000 # In milliseconds
 sampling_rate: 16000
