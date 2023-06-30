@@ -14,8 +14,6 @@ from torch.utils.data import Dataset
 from torch import Tensor
 import numpy as np
 
-from . import utils
-
 
 class CSVDataset(Dataset):
     """
