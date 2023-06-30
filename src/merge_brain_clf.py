@@ -12,11 +12,11 @@ align.
 
 USAGE
 
-python merge_brain_clf.py \
-    --out_dir /home/passch/exp/ \
+python src/merge_brain_clf.py \
+    --out_dir exp/ \
     --out_name BrainClassCond-FT-VariaNTS-v9 \
-    --classifier /home/passch/exp/Brain-Classifier/Sub2_Full-Std_MLP_55classes_LR1e-05_dropout_layernorm_no-shuffle/800.pkl \
-    --pretrained /home/passch/exp/VariaNTSWords-CC-v3_h256_d36_T200_betaT0.02_L1000_cond/checkpoint/180.pkl
+    --classifier exp/Brain-Classifier/sub-002/800.pkl \
+    --pretrained exp/SG-C_v3/checkpoint/180.pkl
 
 -----------------------------------------------------------------------------------------------------------------------
 """ 
