@@ -22,9 +22,10 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import torch
 
-from distributed_util import init_distributed
 from learner import Learner
-from utils import HidePrints
+from utils.distributed_util import init_distributed
+from utils.training import HidePrints
+
 
 
 def train(rank: int, num_gpus: int, group_name: str, cfg: DictConfig) -> None:
