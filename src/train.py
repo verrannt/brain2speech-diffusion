@@ -60,7 +60,7 @@ def train(rank: int, num_gpus: int, group_name: str, cfg: DictConfig) -> None:
     print(f'\nGPU {rank}: Training finished')
 
 
-@hydra.main(version_base=None, config_path="configs/", config_name="config")
+@hydra.main(version_base=None, config_path="../configs/", config_name="config")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     OmegaConf.set_struct(cfg, False) # Allow writing keys
