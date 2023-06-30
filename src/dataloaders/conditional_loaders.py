@@ -68,25 +68,20 @@ class ECOGLoader(ABC):
     Abstract class for implementing an ECoG loader. Subclasses must implement the `retrieve_file` function which returns
     an ECoG file when given an audio file as input.
     """
-
-    def __init__(self, segment_length: int) -> None:
-        self.segment_length = segment_length
-
     def __call__(self, audio_file_path: str, **kwargs) -> Tensor:
         # Retrieving a matching ECoG file must be handled by the inheriting classes
         ecog_file = self.retrieve_file(audio_file_path, **kwargs)
-        ecog = self.process_ecog(ecog_file, self.segment_length)
+        ecog = self.process_ecog(ecog_file)
         return ecog
 
     @staticmethod
-    def process_ecog(ecog_file: str, segment_length: int = None) -> Tensor:
+    def process_ecog(ecog_file: str) -> Tensor:
         """
         Load an ECoG array as PyTorch `Tensor` from disk.
 
         Params:
         ---
         `ecog_file`: Path to the stored ECoG file as numpy array on disk.
-        `segment_length`: Deprecated argument here for API compatibility; always ignored.
 
         Returns:
         ---
@@ -112,10 +107,7 @@ class ECOGRandomLoader(ECOGLoader):
         path: str,
         splits_path: str,
         seed: int, 
-        segment_length: int,
     ) -> None:
-        super().__init__(segment_length)
-
         self.rng = np.random.default_rng(seed)
 
         with open(Path(splits_path) / 'train.csv', 'r') as f_t, \
@@ -168,12 +160,7 @@ class ECOGExactLoader(ECOGLoader):
     file corresponding to exactly that audio recording.
     """
 
-    def __init__(
-        self,
-        path: str,
-        segment_length: int,
-    ) -> None:
-        super().__init__(segment_length)
+    def __init__(self, path: str) -> None:
         self.path = Path(path)
 
     def retrieve_file(self, audio_file_path: str, **kwargs) -> str:

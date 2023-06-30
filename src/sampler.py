@@ -253,8 +253,7 @@ class Sampler:
             
             # For brain-conditional sampling, load the provided file directly
             elif self.conditional_type == "brain":
-                ecog_length = int(self.dataset_cfg.segment_length * self.dataset_cfg.sampling_rate_ecog / 1000)
-                return ECOGLoader.process_ecog(self.conditional_signal, ecog_length).unsqueeze(0).cuda()
+                return ECOGLoader.process_ecog(self.conditional_signal).unsqueeze(0).cuda()
             
             else:
                 raise ValueError(f"Unknown conditional type: {self.conditional_type}")

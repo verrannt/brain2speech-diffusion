@@ -78,13 +78,6 @@ def dataloader(
 
     testset = None
 
-    # Convert segment length from milliseconds to frames
-    segment_length_audio = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate / 1000)
-    # For datasets using conditional brain inputs, need to also do processing for the ECoG files
-    if dataset_name == "brain_cond_variants" or dataset_name == "brain_cond_hp":
-        segment_length_ecog = int(dataset_cfg.segment_length * dataset_cfg.sampling_rate_ecog / 1000)
-        ecog_path = Path(dataset_cfg.ecog_path)
-
     if dataset_name == "variants":
         if unconditional:
             conditional_loader = None
@@ -94,21 +87,20 @@ def dataloader(
 
     elif dataset_name == "brain_cond_variants":
         assert not unconditional
+        ecog_path = Path(dataset_cfg.ecog_path)
         # Use random conditional loader with separate train and val splits for the ECoG files, because we don't have a
         # 1-to-1 matching between ECoG and VariaNTS data
         assert 'ecog_splits_path' in dataset_cfg
         conditional_loader = ECOGRandomLoader(
             path = ecog_path,
             splits_path = dataset_cfg.ecog_splits_path,
-            seed = SHUFFLING_SEED,
-            segment_length = segment_length_ecog)
+            seed = SHUFFLING_SEED)
             
     elif dataset_name == "brain_cond_hp":
         assert not unconditional
+        ecog_path = Path(dataset_cfg.ecog_path)
         # Use exact conditional loader to get the right ECoG matrix for every audio file
-        conditional_loader = ECOGExactLoader(
-            path = ecog_path,
-            segment_length = segment_length_ecog)
+        conditional_loader = ECOGExactLoader(path = ecog_path)
 
     else:
         raise ValueError(f'Unknown dataset specified: {dataset_name}')
@@ -118,7 +110,6 @@ def dataloader(
         csv_path = dataset_cfg.splits_path,
         subset = "train",
         audio_path = dataset_cfg.audio_path,
-        segment_length = segment_length_audio,
         seed=SHUFFLING_SEED,
         conditional_loader=conditional_loader)
     
@@ -126,7 +117,6 @@ def dataloader(
         csv_path = dataset_cfg.splits_path,
         subset = "val",
         audio_path = dataset_cfg.audio_path,
-        segment_length = segment_length_audio,
         seed=SHUFFLING_SEED,
         conditional_loader=conditional_loader)
     
@@ -135,7 +125,6 @@ def dataloader(
             csv_path = dataset_cfg.splits_path,
             subset = "test",
             audio_path = dataset_cfg.audio_path,
-            segment_length = segment_length_audio,
             seed=SHUFFLING_SEED,
             conditional_loader=conditional_loader)
 

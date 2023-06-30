@@ -35,12 +35,7 @@ class CSVDataset(Dataset):
     audio_path: 
         If given, this path is prepended to every filename in
         the loaded .csv file.
-    
-    segment_length: 
-        Desired length of audio sequence (in sampled points). 
-        Any files shorter will be padded, any files longer will be cut to
-        this length.
-    
+        
     shuffle: 
         Whether to shuffle the files read from the .csv file
     
@@ -56,10 +51,8 @@ class CSVDataset(Dataset):
         csv_path: str, 
         subset: str, 
         audio_path: str, 
-        segment_length: int = 16000,
         shuffle: bool = True,
         seed: int = None,
-        min_max_norm: bool = False,
         conditional_loader = None,
     ) -> None:
         self._path = Path(csv_path)
@@ -78,12 +71,6 @@ class CSVDataset(Dataset):
             self._files = [
                 str(audio_path/file_path) for file_path in self._files
             ]
-
-        if segment_length is None:
-            raise ValueError("Sample length must not be None")
-        self.segment_length = segment_length
-
-        self.should_norm = min_max_norm
 
         self.conditional_loader = conditional_loader
 
@@ -131,10 +118,6 @@ class CSVDataset(Dataset):
         the file path itself (`str`).
         """
         waveform, sample_rate = torchaudio.load(file_path)
-
-        # Maybe perform min-max normalization
-        if self.should_norm:
-            waveform = utils.min_max_norm_audio(waveform)
 
         # Norm waveform to designated length and get padding mask
         waveform, mask = utils.fix_length_1d(waveform, self.segment_length)
