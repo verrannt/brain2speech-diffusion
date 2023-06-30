@@ -231,3 +231,19 @@ def multi_proc(
         # If anything goes wrong, e.g. because a 1-D list has been tried
         # to be flattened, simply return the default results
         return res_list
+
+def fix_length(array, desired_length: int):
+    """ 
+    Fix the length of `array` to `desired_length` in first dimension. 
+    If `array` is longer, it will be clipped, if it is shorter, it will be 
+    padded with zeros.
+    """
+    if array.shape[0] > desired_length:
+        return array[:desired_length]
+    elif array.shape[0] < desired_length:
+        return np.concatenate([
+            array, 
+            np.zeros(desired_length - array.shape[0])
+        ], axis=0)
+    else:
+        return array
