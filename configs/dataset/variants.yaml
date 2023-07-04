@@ -8,3 +8,4 @@ audio_path: VariaNTS/VariaNTS_words_HP/
 data_base_dir : data/
 segment_length: 1000 # In milliseconds
 sampling_rate: 16000
+targets: null #dag,heel,kan,keer,man,wel

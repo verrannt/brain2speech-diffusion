@@ -246,8 +246,11 @@ class Sampler:
         else:
             # For class-conditional sampling, get the token from the provided word class
             if self.conditional_type == "class":
-                conditional_loader = ClassConditionalLoader(
-                    os.path.join(self.dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
+                if self.dataset_cfg.get("targets") is not None:
+                    conditional_loader = ClassConditionalLoader(words_list=self.dataset_cfg["targets"])
+                else:
+                    conditional_loader = ClassConditionalLoader(
+                        words_file=os.path.join(self.dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
                 return conditional_loader(self.conditional_signal).unsqueeze(0).cuda()
             
             # For brain-conditional sampling, load the provided file directly

@@ -81,8 +81,11 @@ def dataloader(
         if unconditional:
             conditional_loader = None
         else:
-            conditional_loader = ClassConditionalLoader(
-                words_file=join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
+            if dataset_cfg.get("targets") is not None:
+                conditional_loader = ClassConditionalLoader(words_list=dataset_cfg["targets"])
+            else:
+                conditional_loader = ClassConditionalLoader(
+                    words_file=join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
 
     elif dataset_name == "brain_cond_variants":
         assert not unconditional
