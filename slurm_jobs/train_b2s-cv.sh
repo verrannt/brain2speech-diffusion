@@ -23,33 +23,23 @@ module load Python/3.9.5-GCCcore-10.3.0
 echo [$(date +"%T")] Activating virtual environment
 source venvs/diffwave/bin/activate
 
-# Copy data
-echo [$(date +"%T")] Copying data
-cp -r $HOME/data $TMPDIR/data
-
 # Copy codebase
-echo [$(date +"%T")] Copying DiffWave codebase
+echo [$(date +"%T")] Copying codebase
 cp -r $HOME/brain2speech-diffusion $TMPDIR/brain2speech-diffusion
 
-# Copy checkpoints
-echo [$(date +"%T")] Copying DiffWave checkpoints
-cp -r $HOME/exp $TMPDIR/exp
-
-echo [$(date +"%T")] Navigating to $TMPDIR
-cd $TMPDIR
+# Change directory
+echo [$(date +"%T")] Navigating to $TMPDIR/brain2speech-diffusion
+cd $TMPDIR/brain2speech-diffusion
 
 # Run computation
-# It's important to run this from the base dir (i.e. $TMPDIR), such that the
-# `exp` output directory is in the base dir, too, and can be appropriately copied
 echo [$(date +"%T")] Executing train script
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=BrainClassConditional-v6 \
     experiment=finetuning_brain_class_cond_variants \
-    dataset.data_base_dir="$TMPDIR"/data/ \
-    generate.conditional_signal="$TMPDIR"/data/HP1_ECoG_conditional/sub-002/dag2.npy \
+    generate.conditional_signal=data/HP1_ECoG_conditional/sub-002/dag2.npy \
     generate.conditional_type=brain \
     model.freeze_generator=true \
-    model.pretrained_generator="$TMPDIR"/exp/VariaNTSWords-CC-v3/checkpoint/180.pkl \
+    model.pretrained_generator=exp/VariaNTSWords-CC-v3/checkpoint/180.pkl \
     train.n_epochs=8 \
     train.epochs_per_ckpt=1 \
     train.iters_per_logging=100 \
@@ -69,11 +59,8 @@ python brain2speech-diffusion/train.py \
 #     wandb.mode=online
 
 # Retrieve outputs
-# The train.py script will create a directory named after the model run in the
-# `exp` folder, and since an `exp` folder already exists in HOME, we do not
-# want to copy the whole folder, but just its contents, using the wildcard *
 echo [$(date +"%T")] Retrieving outputs
-cp -r $TMPDIR/exp/* $HOME/exp
+cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp
 
 # Deactivate virtual environment
 echo [$(date +"%T")] Deactivating virtual environment
