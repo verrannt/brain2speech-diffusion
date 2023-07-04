@@ -6,11 +6,10 @@ User must make sure before hand that no duplicate names in input sources
 
 Run from repository root
 
-python src/preprocessing/create_speech_data.py
-    -i data/VariaNTS/VariaNTS \corpus/,data/VariaNTS/TTS_VariaNTS_HP_split
-    -o data/VariaNTS/VariaNTS_words_HP
+python src/preprocessing/create_speech_data.py \
+    -i data/VariaNTS/VariaNTS\ corpus/,data/VariaNTS/TTS_VariaNTS_HP_split \
+    -o data/VariaNTS/VariaNTS_words_HP \
     -so data/datasplits/VariaNTS/VariaNTS_words_HP
-
 -----------------------------------------------------------------------------
 """
 
