@@ -123,7 +123,7 @@ This codebase was originally forked from the [DiffWave-SaShiMi repository by alb
 
 ### Experiment collection
 
-Examples of how experiments can be run. Given parameters may need to be changed.
+Examples of how experiments can be run. Given parameters need to be changed.
 
 In case only a subset of all available GPUs should be used, add `CUDA_VISIBLE_DEVICES=<id>,<id>` before calling the script.
 
@@ -131,12 +131,12 @@ If debugging, add `diffusion.T=5` as flag, which will reduce the number of diffu
 
 #### Unconditional Pretraining
 
-> Note: You also have to specify `generate.conditional_signal=null` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
+> Note: You also have to specify `generate.conditional_signal=null` for this experiment such that the script does not load conditional input, as the default is set for brain input.
 
 ```c
 python brain2speech-diffusion/train.py \
     train.name=delete-me \
-    experiment=pretraining_uncond_variants \
+    experiment=SG-U \
     train.n_epochs=2 \
     train.epochs_per_ckpt=1 \
     train.iters_per_logging=1 \
@@ -145,12 +145,12 @@ python brain2speech-diffusion/train.py \
 
 #### Class-Conditional Pretraining
 
-> Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment, as the default is set for brain input.
+> Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment to determine which word to load for intermediate generations, as the default is set for brain input.
 
 ```c
 python brain2speech-diffusion/train.py \
     train.name=delete-me \
-    experiment=pretraining_class_cond_variants \
+    experiment=SG-C \
     train.n_epochs=2 \
     train.epochs_per_ckpt=1 \
     train.iters_per_logging=1 \
@@ -165,7 +165,7 @@ Harry Potter speech data:
 ```c
 python brain2speech-diffusion/train.py \
     train.name=delete-me \
-    experiment=finetuning_brain_cond_hp \
+    experiment=B2S-Ur \
     model.freeze_generator=false \
     train.n_epochs=2 \
     train.epochs_per_ckpt=1 \
@@ -177,7 +177,7 @@ VariaNTS speech data:
 ```c
 python brain2speech-diffusion/train.py \
     train.name=delete-me \
-    experiment=finetuning_brain_cond_variants \
+    experiment=B2S-Uv \
     model.freeze_generator=true \
     train.n_epochs=2 \
     train.epochs_per_ckpt=1 \
@@ -190,7 +190,7 @@ python brain2speech-diffusion/train.py \
 ```c
 python brain2speech-diffusion/train.py \
     train.name=delete-me \
-    experiment=finetuning_brain_class_cond_variants \
+    experiment=B2S-Cv \
     train.n_epochs=2 \
     train.epochs_per_ckpt=1 \
     train.iters_per_logging=1
