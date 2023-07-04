@@ -40,7 +40,7 @@ def generate(
     sampler.run(ckpt_epoch, model_cfg)
 
 
-@hydra.main(version_base=None, config_path="configs/", config_name="config")
+@hydra.main(version_base=None, config_path="../configs/", config_name="config")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     OmegaConf.set_struct(cfg, False) # Allow writing keys
