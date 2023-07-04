@@ -24,12 +24,14 @@ class ClassConditionalLoader:
     `words_list`: alternative to providing a file on disk, a list of the words can be given directly.
     """
 
-    def __init__(self, words_file: str, words_list: Optional[List[str]] = None) -> None:
+    def __init__(self, words_file: str = None, words_list: Optional[List[str]] = None) -> None:
         if words_list is not None:
             words = words_list
-        else:
+        elif words_file is not None:
             with open(words_file, 'r') as file:
                 words = file.read().split(',')
+        else:
+            raise ValueError("One of words_file or words_list must not be None")
         self.word_tokens = { words[i] : i for i in range(len(words))}
         self.num_classes = len(words)
 
