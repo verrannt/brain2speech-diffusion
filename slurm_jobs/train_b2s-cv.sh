@@ -34,12 +34,12 @@ cd $TMPDIR/brain2speech-diffusion
 # Run computation
 echo [$(date +"%T")] Executing train script
 python src/train.py \
-    train.name=BrainClassConditional-v6 \
-    experiment=finetuning_brain_class_cond_variants \
+    train.name=B2S-Cv_v9 \
+    experiment=B2S-Cv \
     generate.conditional_signal=data/HP1_ECoG_conditional/sub-002/dag2.npy \
     generate.conditional_type=brain \
     model.freeze_generator=true \
-    model.pretrained_generator=exp/VariaNTSWords-CC-v3/checkpoint/180.pkl \
+    model.pretrained_generator=exp/SG-C_v3/checkpoint/180.pkl \
     train.n_epochs=8 \
     train.epochs_per_ckpt=1 \
     train.iters_per_logging=100 \

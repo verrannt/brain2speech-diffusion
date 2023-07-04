@@ -34,8 +34,8 @@ cd $TMPDIR/brain2speech-diffusion
 # Run computation
 echo [$(date +"%T")] Executing train script
 python src/train.py \
-    train.name=VariaNTSWords-CC-v3 \
-    experiment=pretraining_class_cond_variants \
+    train.name=SG-C_v3 \
+    experiment=SG-C \
     generate.conditional_signal=dag \
     generate.conditional_type=class \
     train.n_epochs=320 \
