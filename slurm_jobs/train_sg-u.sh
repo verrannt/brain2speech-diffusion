@@ -34,7 +34,7 @@ cd $TMPDIR/brain2speech-diffusion
 # Run computation
 echo [$(date +"%T")] Executing train script
 python src/train.py \
-    train.name=SG-U_v9_noaug \
+    train.name=SG-U_v9 \
     experiment=SG-U \
     generate.conditional_signal=null \
     train.n_epochs=250 \
