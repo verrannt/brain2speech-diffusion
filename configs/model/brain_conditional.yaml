@@ -13,7 +13,7 @@ num_res_layers: 36
 dilation_cycle: 12
 # NOTE This might be set differently depending on which dataset is being used
 freeze_generator: true
-pretrained_generator: exp/SG-U_v9/checkpoint/250.pkl
+pretrained_generator: exp/SG-U_v9/checkpoint/230.pkl
 encoder_config:
   name: brain_encoder
   c_in: 48
