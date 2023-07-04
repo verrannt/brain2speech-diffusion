@@ -7,7 +7,6 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 
 from .csv_dataset import CSVDataset
-from .utils import *
 from .conditional_loaders import ECOGRandomLoader, ECOGExactLoader, ClassConditionalLoader
 
 
