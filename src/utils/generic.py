@@ -1,7 +1,7 @@
+from IPython import display
 from multiprocessing import Pool
 import os
 from sys import getsizeof
-from pathlib import Path
 import re
 
 import matplotlib.pyplot as plt
@@ -9,7 +9,6 @@ from pydub import AudioSegment
 from pydub.silence import detect_silence
 import numpy as np
 from tqdm import tqdm
-
 
 
 def varinfo(var):
