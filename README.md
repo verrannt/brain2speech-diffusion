@@ -63,7 +63,7 @@ All of the default config values that will be loaded when calling the `train.py`
 
 #### Logging
 
-The repository implements logging via [Weights & Biases](https://wandb.ai/), as well as the storage of model artefacts and sample outputs. 
+The repository implements logging via [Weights & Biases](https://wandb.ai/), as well as the storage of model artefacts and model-created audio. 
 
 Before you start logging, you need to:
 1. Setup a project on W&B,
@@ -72,12 +72,11 @@ Before you start logging, you need to:
 
 There are additional configuration options to control the W&B logger:
 * `wandb.mode`: `disabled` by default. Pass `wandb.mode=online` to activate logging to W&B. This will prompt you to login to W&B if you haven't done so.
-* To continue logging to a previously tracked run, fetch the run's ID from your project page on W&B (it's in the URL, *not* the run's name) and pass `wandb.id=<run-id>` as well as `+wandb.resume=true` (note the leading '+' sign).
+* To continue logging to a previously tracked run, obtain the run's ID from your project page on W&B (it's in the URL, *not* the run's name) and pass `wandb.id=<run-id>` as well as `+wandb.resume=true` (note the leading '+' sign).
 
 #### Debugging
 
 If you want to quickly test code, you can run smaller versions of a dataset for debugging:
-* Pass `dataset.segment_length=10` to cut all audio segments to 10 ms
 * When using VariaNTS words as audio data, pass `dataset.splits_path=datasplits/VariaNTS/tiny_subset/` to only load few audio samples each epoch (assuming you have downloaded the provided datasplits, else you may create your own small subset)
 * Pass `diffusion.T=5` to reduce the number of diffusion steps in generation
 
@@ -98,8 +97,8 @@ Generation during training happens automatically (see `learner.py` for the imple
 
 All configuration options can be found in the `configs/config.yaml` file's `generate` section, but the important ones (i.e. the ones changed most frequently) are listed below:
 
-* `experiment`: Name of the experiment config that was used during the training run. This will load the required diffusion, dataset and model config
-* `name`: Name of the training run that created the trained model that should be used
+* `experiment`: Name of the experiment config as found in `configs/experiment` that was used during the training run. This will load the required diffusion, dataset and model config.
+* `name`: Name of the training run that created the trained model to be used for generating, which is the folder name in the `exp/` directory
 * `conditional_type`: Either `class` for class conditional sampling, or `brain` for brain conditional sampling. If the model is unconditional, can be null, or will otherwise be ignored.
 * `conditional_signal`: The actual conditional input signal to use in case of conditional sampling. If the model is a class-conditional model, it suffices to simply state the word to be generated here (e.g. `dag`). If it is a brain-conditional model, this should be a full (absolute) file path to the ECoG recording file on disk (e.g. `/home/user/path/to/recording/dag1.npy`).
 
@@ -107,7 +106,7 @@ All configuration options can be found in the `configs/config.yaml` file's `gene
 
 #### Example
 ```s
-python brain2speech-diffusion/generate.py experiment=my-custom-experiment generate.name=Example-Model-v2 generate.conditional_type=class generate.conditional_signal=dag
+python src/generate.py experiment=my-custom-experiment generate.name=Example-Model-v2 generate.conditional_type=class generate.conditional_signal=dag
 ```
 
 ### Pretrained Models
@@ -127,14 +126,14 @@ Examples of how experiments can be run. Given parameters need to be changed.
 
 In case only a subset of all available GPUs should be used, add `CUDA_VISIBLE_DEVICES=<id>,<id>` before calling the script.
 
-If debugging, add `diffusion.T=5` as flag, which will reduce the number of diffusion steps during generation.
+If debugging, add `diffusion.T=5` as flag, which will reduce the number of diffusion steps during generation. For VariaNTS-based models, you can also append `dataset.splits_path=datasplits/VariaNTS/tiny_subset` to only use a few audio files in total.
 
 #### Unconditional Pretraining
 
 > Note: You also have to specify `generate.conditional_signal=null` for this experiment such that the script does not load conditional input, as the default is set for brain input.
 
 ```c
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=delete-me \
     experiment=SG-U \
     train.n_epochs=2 \
@@ -148,7 +147,7 @@ python brain2speech-diffusion/train.py \
 > Note: You also have to specify `generate.conditional_type=class` and `generate.conditional_signal=<word>` for this experiment to determine which word to load for intermediate generations, as the default is set for brain input.
 
 ```c
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=delete-me \
     experiment=SG-C \
     train.n_epochs=2 \
@@ -163,7 +162,7 @@ python brain2speech-diffusion/train.py \
 Harry Potter speech data:
 
 ```c
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=delete-me \
     experiment=B2S-Ur \
     model.freeze_generator=false \
@@ -175,7 +174,7 @@ python brain2speech-diffusion/train.py \
 VariaNTS speech data:
 
 ```c
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=delete-me \
     experiment=B2S-Uv \
     model.freeze_generator=true \
@@ -188,7 +187,7 @@ python brain2speech-diffusion/train.py \
 #### Brain + Class Conditional Fine-Tuning
 
 ```c
-python brain2speech-diffusion/train.py \
+python src/train.py \
     train.name=delete-me \
     experiment=B2S-Cv \
     train.n_epochs=2 \
