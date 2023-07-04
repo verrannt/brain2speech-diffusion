@@ -114,8 +114,7 @@ class Learner():
         if self.is_master:
             wandb.init(**self.wandb_cfg, config=self.config_dict)
 
-        _, checkpoint_directory = train_utils.create_output_directory(
-            self.name, self.model_cfg, self.diffusion_cfg, self.dataset_cfg, 'checkpoint')
+        checkpoint_directory = train_utils.create_output_directory(self.name, 'checkpoint')
 
         # Map diffusion hyperparameters to GPU
         # Gives dictionary of all diffusion hyperparameters

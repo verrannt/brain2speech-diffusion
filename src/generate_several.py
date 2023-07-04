@@ -141,10 +141,10 @@ def main(cfg: DictConfig) -> None:
         dataset_cfg=cfg.dataset,
         **cfg.generate,
     )
-    experiment_name, _ = create_output_directory(
-        sampler.name, cfg.model, sampler.diffusion_cfg, sampler.dataset_cfg, 'waveforms')
 
-    model, ckpt_epoch = sampler.load_model(experiment_name, cfg.model, ckpt_epoch, sampler.conditional_signal is None)
+    create_output_directory(sampler.name, 'waveforms')
+
+    model, ckpt_epoch = sampler.load_model(sampler.name, cfg.model, ckpt_epoch, sampler.conditional_signal is None)
 
     output_subdir = f"waveforms_{'val' if cfg.use_val==True else 'train'}"
 

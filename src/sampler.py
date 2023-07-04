@@ -91,13 +91,11 @@ class Sampler:
         print("\nGenerating:")
     
         # Get output directory for waveforms for this run
-        experiment_name, waveform_directory = create_output_directory(
-            self.name, model_cfg, self.diffusion_cfg, self.dataset_cfg, output_subdir)
-
+        waveform_directory = create_output_directory(self.name, output_subdir)
 
         # Load model if not given
         if model is None:
-            model, ckpt_epoch = self.load_model(experiment_name, model_cfg, ckpt_epoch, self.conditional_signal is None)
+            model, ckpt_epoch = self.load_model(self.name, model_cfg, ckpt_epoch, self.conditional_signal is None)
 
         # Add checkpoint number to output directory
         waveform_directory = os.path.join(waveform_directory, str(ckpt_epoch))

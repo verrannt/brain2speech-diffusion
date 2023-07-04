@@ -139,13 +139,7 @@ def print_size(net: torch.nn.Module, verbose: bool = False) -> None:
             net.__class__.__name__, params / 1e6), flush=True)
 
 
-def create_output_directory(
-    name: str, 
-    model_cfg: DictConfig, 
-    diffusion_cfg: DictConfig, 
-    dataset_cfg: DictConfig, 
-    sub_directory: str
-) -> Tuple[str, str]:
+def create_output_directory(name: str, sub_directory: str) -> str:
     """
     Create the experiment output directory on disk.
 
@@ -153,34 +147,19 @@ def create_output_directory(
     ----------
     name:
         Name of the experiment
-    model_cfg:
-        Model configuration dict
-    diffusion_cfg:
-        Configuration dict of the diffusion process (i.e. diffusion parameters)
-    dataset_cfg:
-        Configuration dict of the dataset
     sub_directory:
         The specific output directory needed. Usually 'checkpoints' for model checkpoints or 'waveforms' for generated
         samples.
 
     Returns
     -------
-    Tuple containing the formatted experiment name and the output directory
+    Name of the generated output directory
     """
-    # Get formatted experiment name with details about the model, diffusion process, and dataset
-    model_name = f"h{model_cfg['res_channels']}_d{model_cfg['num_res_layers']}"
-    diffusion_name = f"T{diffusion_cfg['T']}_betaT{diffusion_cfg['beta_T']}"
-    if model_cfg["unconditional"]:
-        data_name = "uncond"
-    else:
-        data_name = f"L{dataset_cfg['segment_length']}_cond"
-    experiment_name = f'{name}_{model_name}_{diffusion_name}_{data_name}'
-
     # Create output directory if it doesn't exist
-    output_directory = os.path.join('exp', experiment_name, sub_directory)
+    output_directory = os.path.join('exp', name, sub_directory)
     os.makedirs(output_directory, mode=0o775, exist_ok=True)
         
-    return experiment_name, output_directory
+    return output_directory
 
 
 def prepend_data_base_dir(dataset_cfg: DictConfig) -> DictConfig:
