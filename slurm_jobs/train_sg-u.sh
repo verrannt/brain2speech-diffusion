@@ -46,14 +46,6 @@ python src/train.py \
     # wandb.id=<id> \
     # +wandb.resume=true
 
-# For testing purposes, the 'tiny' version of the data can be used:
-# python src/train.py \
-#     dataset.file_base_path="$TMPDIR"/data/VariaNTS_words_22kHz/ \
-#     dataset.data_path="$TMPDIR"/data/datasplits/VariaNTS_Words/tiny_subset0.015-50-25-25 \
-#     experiment=variants_tiny \
-#     train.name=testing \
-#     wandb.mode=online
-
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
 cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp

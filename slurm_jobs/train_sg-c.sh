@@ -47,15 +47,6 @@ python src/train.py \
     # wandb.id=<id> \
     # +wandb.resume=true \
 
-# For testing purposes, the 'tiny' version of the data can be used:
-# python brain2speech-diffusion/train.py \
-#     dataset.data_path="$TMPDIR"/data/hp1_eeg_conditional/ \
-#     generate.conditional_file="$TMPDIR"/data/hp1_eeg_conditional/train/dag7.npy \
-#     experiment=brain_conditional_tiny \
-#     train.name=testing_brain_cond \
-#     +model.pretrained_generator="$TMPDIR"/exp/VariaNTSWords-v6_wnet_h256_d36_T200_betaT0.02_uncond/checkpoint/550.pkl \
-#     wandb.mode=online
-
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
 cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp
