@@ -12,7 +12,7 @@ skip_channels: 256
 num_res_layers: 36
 dilation_cycle: 12
 freeze_generator: true
-pretrained_generator: /home/passch/exp/VariaNTSWords-CC-v2_h256_d36_T200_betaT0.02_L1000_cond/checkpoint/270.pkl
+pretrained_generator: exp/SG-C_v3/checkpoint/270.pkl
 encoder_config:
   name: brain_class_encoder
   n_classes: 55
