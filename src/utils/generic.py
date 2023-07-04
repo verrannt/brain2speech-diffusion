@@ -1,4 +1,3 @@
-from IPython import display
 from multiprocessing import Pool
 import os
 from sys import getsizeof
@@ -61,23 +60,6 @@ def moving_average(a, n=3) :
     ret = np.cumsum(a, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
-
-
-def plot_silence(filename, min_silence_len=250, silence_thresh=-16):
-    audio = AudioSegment.from_file(filename)#, format=str(filename).split('.')[-1])
-    print(f'Read audio of length {int(audio.frame_count())} with sampling rate {audio.frame_rate}')
-
-    silence_idx = detect_silence(audio, min_silence_len=min_silence_len, silence_thresh=silence_thresh)
-    print('Silent sections found at milliseconds:')
-    print(silence_idx)
-
-    audio_data = audio.get_array_of_samples()
-    plt.plot(audio_data)
-    plt.vlines([(section[0]/1000)*audio.frame_rate for section in silence_idx], ymin=-audio.max, ymax=audio.max, color='g')
-    plt.vlines([(section[1]/1000)*audio.frame_rate for section in silence_idx], ymin=-audio.max, ymax=audio.max, color='r')
-    plt.show()
-
-    display(audio)
 
 
 def calc_receptive_field_size(d:int, k:int, L:int):
