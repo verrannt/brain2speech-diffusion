@@ -27,7 +27,11 @@ Speech samples generated for all models are provided [here](https://drive.google
 * [References](#references)
 
 
+## Data
 
+The [VariaNTS dataset](https://www.researchgate.net/publication/348012411_Development_and_structure_of_the_VariaNTS_corpus_A_spoken_Dutch_corpus_containing_talker_and_linguistic_variability) that was used as the speech dataset for this research can be downloaded [here](https://zenodo.org/record/3932039). 
+
+You have to rename the incorrectly labelled 'föhn.wav' file for speaker p01 found in p01/p01_words/ to 'fohn.wav', as it is for the other speakers, to ensure that the data processing functions correctly.
 
 ## Usage
 
