@@ -228,9 +228,6 @@ def fix_length(array, desired_length: int):
     if array.shape[0] > desired_length:
         return array[:desired_length]
     elif array.shape[0] < desired_length:
-        return np.concatenate([
-            array, 
-            np.zeros(desired_length - array.shape[0])
-        ], axis=0)
+        return np.pad(array, (0, desired_length - array.shape[0]), 'constant')
     else:
         return array
