@@ -1,7 +1,7 @@
 # Fine-tuning dataset for HP ECoG data mapped to VariaNTS audio data
 
 _name_: brain_cond_variants
-splits_path: datasplits/VariaNTS/HP_b2s_90-10/
+splits_path: datasplits/VariaNTS/HP_55classes_90-10_b2s/
 # splits_path: datasplits/VariaNTS/tiny_subset
 audio_path: VariaNTS/VariaNTS_words_HP/
 ecog_path: HP1_ECoG_conditional/sub-002/

@@ -3,7 +3,7 @@
 # from filenames and does not have to be specified here.
 
 _name_: variants
-splits_path: datasplits/VariaNTS/HP_90-10/
+splits_path: datasplits/VariaNTS/HP_55classes_90-10/
 audio_path: VariaNTS/VariaNTS_words_HP/
 data_base_dir : data/
 segment_length: 1000 # In milliseconds
