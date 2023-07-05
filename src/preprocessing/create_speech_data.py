@@ -249,10 +249,10 @@ def main(
     # For each word
     for word in targets:
         # Randomly pick n speakers
-        speaker_ids = rng.choice(
+        chosen_speaker_ids = rng.choice(
             speaker_ids, n_validation_speakers, replace=False)
         # Pick files
-        for id in speaker_ids:
+        for id in chosen_speaker_ids:
             matching_files = [
                 fn for fn in train_files if id in fn and word in fn
             ]
@@ -272,8 +272,6 @@ def main(
 
     train_files = sorted(train_files)
     val_files = sorted(val_files)
-    train_files_noaug = sorted(train_files_noaug)
-    val_files_noaug = sorted(val_files_noaug)
 
     # Write the splits as CSV files to disk
     # Note that we use the augmented files for the default training split,
