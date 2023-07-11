@@ -8,9 +8,10 @@ import pickle
 from tqdm import tqdm
 import numpy as np
 
-class InceptionScore():
+
+class InceptionScore:
     def __init__(self, clf_path, audio_load_workers=8, verbose=False):
-        with open(clf_path, 'rb') as f:
+        with open(clf_path, "rb") as f:
             self.clf = pickle.load(f)
         self.audio_load_workers = audio_load_workers
         self.verbose = verbose
@@ -27,7 +28,7 @@ class InceptionScore():
 
     @classmethod
     def calculate_inception_score(self, p_yx, eps=1e-16):
-        """ Calculate the Inception Score for p(y|x) """
+        """Calculate the Inception Score for p(y|x)"""
         # calculate p(y)
         p_y = np.expand_dims(p_yx.mean(axis=0), 0)
         # kl divergence for each image

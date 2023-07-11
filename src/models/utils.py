@@ -29,8 +29,7 @@ def calc_diffusion_step_embedding(diffusion_steps, dim):
     _embed = np.log(10000) / (half_dim - 1)
     _embed = torch.exp(torch.arange(half_dim) * -_embed).cuda()
     _embed = diffusion_steps * _embed
-    diffusion_step_embed = torch.cat((torch.sin(_embed),
-                                      torch.cos(_embed)), 1)
+    diffusion_step_embed = torch.cat((torch.sin(_embed), torch.cos(_embed)), 1)
 
     return diffusion_step_embed
 
@@ -54,8 +53,7 @@ class Conv(nn.Module):
         super(Conv, self).__init__()
         self.padding = dilation * (kernel_size - 1) // 2
         self.conv = nn.Conv1d(
-            in_channels, out_channels, 
-            kernel_size, dilation=dilation, padding=self.padding
+            in_channels, out_channels, kernel_size, dilation=dilation, padding=self.padding
         )
         self.conv = nn.utils.weight_norm(self.conv)
         nn.init.kaiming_normal_(self.conv.weight)
@@ -89,12 +87,12 @@ class Conv2D(nn.Module):
     """
 
     def __init__(
-        self, 
-        in_channels: int, 
-        out_channels: int, 
-        kernel_size: Union[int, Tuple[int, int]] = 3, 
-        stride: Union[int, Tuple[int, int]] = 2, 
-        padding: Union[int, Tuple[int, int]] = 1
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: Union[int, Tuple[int, int]] = 3,
+        stride: Union[int, Tuple[int, int]] = 2,
+        padding: Union[int, Tuple[int, int]] = 1,
     ) -> None:
         super(Conv2D, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)

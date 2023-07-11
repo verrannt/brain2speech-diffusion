@@ -7,7 +7,8 @@ from omegaconf import DictConfig
 import torch
 from torch import Tensor
 
-class MaskedMSELoss():
+
+class MaskedMSELoss:
     """
     Compute Mean-Squared-Error loss between inputs and targets. Takes a boolean
     mask to keep masked-out values from contributing to the loss and thus
@@ -23,7 +24,7 @@ class MaskedMSELoss():
     def __init__(self):
         # Under the hood, we use torch's MSELoss without reduction, such that
         # we can apply our own reduction based on the mask we're getting
-        self.loss_fn = torch.nn.MSELoss(reduction='none')
+        self.loss_fn = torch.nn.MSELoss(reduction="none")
 
     def __call__(self, input, target, mask=None):
         # Obtain the element-wise loss value using the non-reduced MSELoss
@@ -50,9 +51,9 @@ class MaskedMSELoss():
 
 class HidePrints:
     """
-    Context that suppresses all outputs written to `stdout`. Useful for multiprocessing, when only one process should 
-    print to `stdout`. 
-    
+    Context that suppresses all outputs written to `stdout`. Useful for multiprocessing, when
+    only one process should print to `stdout`.
+
     Does not suppress raised exceptions.
 
     Parameters
@@ -70,17 +71,18 @@ class HidePrints:
 
     print('This will again be printed')
 
-    with HidePrints(False):    
+    with HidePrints(False):
         print('This will also be printed')
     ```
     """
+
     def __init__(self, hide: bool = True) -> None:
         self.hide = hide
 
     def __enter__(self):
         if self.hide:
             self._original_stdout = sys.stdout
-            sys.stdout = open(os.devnull, 'w')
+            sys.stdout = open(os.devnull, "w")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.hide:
@@ -94,7 +96,7 @@ def find_max_epoch(path: str) -> int:
 
     Parameters
     ----------
-    path: 
+    path:
         Checkpoint path
 
     Returns
@@ -106,7 +108,7 @@ def find_max_epoch(path: str) -> int:
     for f in files:
         if len(f) <= 4:
             continue
-        if f.endswith('.pkl'):
+        if f.endswith(".pkl"):
             try:
                 epoch = max(epoch, int(f[:-4]))
             except:
@@ -135,8 +137,7 @@ def print_size(net: torch.nn.Module, verbose: bool = False) -> None:
                 print(n, p.numel())
 
         params = sum([np.prod(p.size()) for n, p in module_parameters])
-        print("{} Parameters: {:.6f}M".format(
-            net.__class__.__name__, params / 1e6), flush=True)
+        print("{} Parameters: {:.6f}M".format(net.__class__.__name__, params / 1e6), flush=True)
 
 
 def create_output_directory(name: str, sub_directory: str) -> str:
@@ -148,23 +149,24 @@ def create_output_directory(name: str, sub_directory: str) -> str:
     name:
         Name of the experiment
     sub_directory:
-        The specific output directory needed. Usually 'checkpoints' for model checkpoints or 'waveforms' for generated
-        samples.
+        The specific output directory needed. Usually 'checkpoints' for model checkpoints or
+        'waveforms' for generated samples.
 
     Returns
     -------
     Name of the generated output directory
     """
     # Create output directory if it doesn't exist
-    output_directory = os.path.join('exp', name, sub_directory)
+    output_directory = os.path.join("exp", name, sub_directory)
     os.makedirs(output_directory, mode=0o775, exist_ok=True)
-        
+
     return output_directory
 
 
 def prepend_data_base_dir(dataset_cfg: DictConfig) -> DictConfig:
     """
-    Prepend the base path of where all data is stored on disk to the different data paths that are in the `dataset_cfg`.
+    Prepend the base path of where all data is stored on disk to the different data paths that are
+    in the `dataset_cfg`.
 
     Parameters
     ----------
@@ -177,19 +179,17 @@ def prepend_data_base_dir(dataset_cfg: DictConfig) -> DictConfig:
     """
     dataset_cfg.audio_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.audio_path)
     dataset_cfg.splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.splits_path)
-    if 'ecog_path' in dataset_cfg:
+    if "ecog_path" in dataset_cfg:
         dataset_cfg.ecog_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.ecog_path)
-    if 'ecog_splits_path' in dataset_cfg:
-        dataset_cfg.ecog_splits_path = os.path.join(dataset_cfg.data_base_dir, dataset_cfg.ecog_splits_path)
+    if "ecog_splits_path" in dataset_cfg:
+        dataset_cfg.ecog_splits_path = os.path.join(
+            dataset_cfg.data_base_dir, dataset_cfg.ecog_splits_path
+        )
     return dataset_cfg
 
 
 def calc_diffusion_hyperparams(
-    T: int, 
-    beta_0: float, 
-    beta_T: float, 
-    beta: List[float] = None, 
-    fast: bool = False
+    T: int, beta_0: float, beta_T: float, beta: List[float] = None, fast: bool = False
 ) -> Dict[str, Any]:
     """
     Compute hyperparameters of the diffusion process and move them onto the current GPU.
@@ -203,16 +203,17 @@ def calc_diffusion_hyperparams(
     beta_T:
         Ending value of the beta schedule
     beta:
-        A full beta schedule that will be used instead of linearly interpolating between beta_0 and beta_T if
-        `fast==True`
+        A full beta schedule that will be used instead of linearly interpolating between beta_0
+        and beta_T if `fast==True`
     fast:
         Whether to use the schedule defined in `beta`
 
     Returns
     -------
     A dictionary of diffusion hyperparameters including:
-        T (int), Beta, Alpha, and Alpha_bar (torch GPU Tensors, shape=[T,]), and Sigma (torch CPU Tensor, shape=[T, ])
-    
+        T (int), Beta, Alpha, and Alpha_bar (torch GPU Tensors, shape=[T,]), and Sigma (torch CPU
+        Tensor, shape=[T, ])
+
     Raises
     ------
     ValueError:
@@ -230,11 +231,13 @@ def calc_diffusion_hyperparams(
     Alpha = 1 - Beta
     Alpha_bar = Alpha + 0
     Beta_tilde = Beta + 0
-    
+
     for t in range(1, T):
-        Alpha_bar[t] *= Alpha_bar[t-1]  # \bar{\alpha}_t = \prod_{s=1}^t \alpha_s
-        Beta_tilde[t] *= (1-Alpha_bar[t-1]) / (1-Alpha_bar[t])  # \tilde{\beta}_t = \beta_t * (1-\bar{\alpha}_{t-1}) / (1-\bar{\alpha}_t)
-    
+        Alpha_bar[t] *= Alpha_bar[t - 1]  # \bar{\alpha}_t = \prod_{s=1}^t \alpha_s
+        Beta_tilde[t] *= (1 - Alpha_bar[t - 1]) / (
+            1 - Alpha_bar[t]
+        )  # \tilde{\beta}_t = \beta_t * (1-\bar{\alpha}_{t-1}) / (1-\bar{\alpha}_t)
+
     Sigma = torch.sqrt(Beta_tilde)  # \sigma_t^2  = \tilde{\beta}_t
 
     _dh = {

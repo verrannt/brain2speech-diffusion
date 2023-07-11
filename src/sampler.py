@@ -10,7 +10,12 @@ from tqdm import tqdm
 from dataloaders.conditional_loaders import ECOGLoader, ClassConditionalLoader
 from models import construct_model
 from utils.generic import get_word_from_filepath
-from utils.training import calc_diffusion_hyperparams, create_output_directory, print_size, find_max_epoch
+from utils.training import (
+    calc_diffusion_hyperparams,
+    create_output_directory,
+    print_size,
+    find_max_epoch,
+)
 
 
 class Sampler:
@@ -48,6 +53,7 @@ class Sampler:
         If `n_samples` is not a multiple of `batch_size`, i.e. the desired number of samples cannot be generated in
         appropriately sized batches.
     """
+
     def __init__(
         self,
         rank: int,
@@ -67,8 +73,9 @@ class Sampler:
         self.n_samples = n_samples
         self.batch_size = batch_size
         self.conditional_signal = conditional_signal
-        assert conditional_type == "brain" or conditional_type == "class" or conditional_type is None, \
-            "The type of conditional input can only be 'brain' or 'class'"
+        assert (
+            conditional_type == "brain" or conditional_type == "class" or conditional_type is None
+        ), "The type of conditional input can only be 'brain' or 'class'"
         self.conditional_type = conditional_type
 
         torch.cuda.set_device(self.rank % torch.cuda.device_count())
@@ -82,20 +89,22 @@ class Sampler:
 
     @torch.no_grad()
     def run(
-        self, 
-        ckpt_epoch: Union[str, int], 
-        model_cfg: DictConfig, 
+        self,
+        ckpt_epoch: Union[str, int],
+        model_cfg: DictConfig,
         model: torch.nn.Module = None,
-        output_subdir: str = 'waveforms',
+        output_subdir: str = "waveforms",
     ) -> None:
         print("\nGenerating:")
-    
+
         # Get output directory for waveforms for this run
         waveform_directory = create_output_directory(self.name, output_subdir)
 
         # Load model if not given
         if model is None:
-            model, ckpt_epoch = self.load_model(self.name, model_cfg, ckpt_epoch, self.conditional_signal is None)
+            model, ckpt_epoch = self.load_model(
+                self.name, model_cfg, ckpt_epoch, self.conditional_signal is None
+            )
 
         # Add checkpoint number to output directory
         waveform_directory = os.path.join(waveform_directory, str(ckpt_epoch))
@@ -106,17 +115,23 @@ class Sampler:
 
         # Compute audio length in no. of frames from segment length in milliseconds and sampling rate
         audio_length = int(self.dataset_cfg.segment_length * self.dataset_cfg.sampling_rate / 1000)
-        
+
         # Load conditional input
         if model_cfg.unconditional and self.conditional_signal is not None:
-            raise ValueError('Model configured to be unconditional, but a conditional input is specified')
+            raise ValueError(
+                "Model configured to be unconditional, but a conditional input is specified"
+            )
         if not model_cfg.unconditional and self.conditional_signal is None:
-            raise ValueError('Model configured to be conditional, but no conditional input is specified')
+            raise ValueError(
+                "Model configured to be conditional, but no conditional input is specified"
+            )
         conditional_input = self.load_conditional_input()
 
         # Print information about inference
-        print(f'Audio length: {audio_length}, Samples: {self.n_samples}, '
-              f'Batch size: {self.batch_size}, Reverse steps (T): {self.diffusion_hyperparams["T"]}')
+        print(
+            f"Audio length: {audio_length}, Samples: {self.n_samples}, "
+            f'Batch size: {self.batch_size}, Reverse steps (T): {self.diffusion_hyperparams["T"]}'
+        )
 
         # Run Inference
         start = torch.cuda.Event(enable_timing=True)
@@ -124,7 +139,7 @@ class Sampler:
         start.record()
 
         generated_audio = []
-        
+
         for _ in range(self.n_samples // self.batch_size):
             _audio = self.sampling(
                 model,
@@ -132,44 +147,46 @@ class Sampler:
                 condition=conditional_input,
             )
             generated_audio.append(_audio)
-        
+
         generated_audio = torch.cat(generated_audio, dim=0)
 
         end.record()
         torch.cuda.synchronize()
 
-        print('Generated {} samples with shape {} in {} seconds'.format(
-            self.n_samples,
-            list(generated_audio.shape),
-            int(start.elapsed_time(end)/1000)
-        ))
+        print(
+            "Generated {} samples with shape {} in {} seconds".format(
+                self.n_samples, list(generated_audio.shape), int(start.elapsed_time(end) / 1000)
+            )
+        )
 
         # Save generated audio as WAV files to disk
-        
+
         # In case of conditional sampling, get the word from filepath, but do not remove numbering: numbering is only
         # there in the brain-conditional case and is relevant for telling us which ECoG recording was used.
         if self.conditional_signal is not None:
-            conditional_signal_name = get_word_from_filepath(self.conditional_signal, uses_numbering=False) + '_'
+            conditional_signal_name = (
+                get_word_from_filepath(self.conditional_signal, uses_numbering=False) + "_"
+            )
         else:
-            conditional_signal_name = ''
+            conditional_signal_name = ""
         for i in range(self.n_samples):
-            outfile = f'{conditional_signal_name}{self.n_samples*self.rank + i}.wav'
+            outfile = f"{conditional_signal_name}{self.n_samples*self.rank + i}.wav"
             wavwrite(
                 os.path.join(waveform_directory, outfile),
                 self.dataset_cfg.sampling_rate,
-                generated_audio[i].squeeze().cpu().numpy()
+                generated_audio[i].squeeze().cpu().numpy(),
             )
 
-        print(f'Saved generated samples at {waveform_directory}')
-        
+        print(f"Saved generated samples at {waveform_directory}")
+
         return generated_audio
 
     def load_model(
-        self, 
-        experiment_name: str, 
-        model_cfg: DictConfig, 
-        ckpt_epoch: Union[int, str], 
-        unconditional: bool
+        self,
+        experiment_name: str,
+        model_cfg: DictConfig,
+        ckpt_epoch: Union[int, str],
+        unconditional: bool,
     ) -> Tuple[torch.nn.Module, int]:
         """
         Load a trained model from disk.
@@ -182,14 +199,14 @@ class Sampler:
         model_cfg:
             Configuration options of the model needed to construct the model.
         ckpt_epoch:
-            Which epoch checkpoint to load. If `'max'`, finds the latest checkpoint. Else if `int`, will look for the 
+            Which epoch checkpoint to load. If `'max'`, finds the latest checkpoint. Else if `int`, will look for the
             exact epoch.
         unconditional:
             Whether the model is a conditional or unconditional model.
 
         Returns
         -------
-        The loaded model, and the epoch that was loaded (only different from the input parameter if the latter was 
+        The loaded model, and the epoch that was loaded (only different from the input parameter if the latter was
         `'max'` and had to be resolved)
 
         Raises
@@ -198,38 +215,37 @@ class Sampler:
             If no valid model could be found or loading failed.
         """
 
-
         model = construct_model(model_cfg).cuda()
         print_size(model)
         model.eval()
 
-        print(f'Loading checkpoint at epoch {ckpt_epoch}')
-        ckpt_path = os.path.join('exp', experiment_name, 'checkpoint')
-        if ckpt_epoch == 'max':
+        print(f"Loading checkpoint at epoch {ckpt_epoch}")
+        ckpt_path = os.path.join("exp", experiment_name, "checkpoint")
+        if ckpt_epoch == "max":
             ckpt_epoch = find_max_epoch(ckpt_path)
         ckpt_epoch = int(ckpt_epoch)
 
         try:
-            model_path = os.path.join(ckpt_path, f'{ckpt_epoch}.pkl')
-            checkpoint = torch.load(model_path, map_location='cpu')
+            model_path = os.path.join(ckpt_path, f"{ckpt_epoch}.pkl")
+            checkpoint = torch.load(model_path, map_location="cpu")
 
             if unconditional:
-                model.load_state_dict(checkpoint['model_state_dict'])
+                model.load_state_dict(checkpoint["model_state_dict"])
             else:
                 model.load_state_dict(
-                    checkpoint['model_state_dict'],
-                    checkpoint.get('conditioner_state_dict', None),
+                    checkpoint["model_state_dict"],
+                    checkpoint.get("conditioner_state_dict", None),
                 )
 
-            print(f'Successfully loaded model at epoch {ckpt_epoch}')
+            print(f"Successfully loaded model at epoch {ckpt_epoch}")
         except:
-            raise Exception(f'No valid model found for epoch {ckpt_epoch} at path {ckpt_path}')
+            raise Exception(f"No valid model found for epoch {ckpt_epoch} at path {ckpt_path}")
 
         return model, ckpt_epoch
 
     def load_conditional_input(self) -> Optional[Tensor]:
         """
-        Load conditional input, either by reading an ECoG file from disk or getting the token for a word class. This 
+        Load conditional input, either by reading an ECoG file from disk or getting the token for a word class. This
         depends on whether `conditional_type` is `brain` or `class`, respectively. If no conditional signal is given,
         simply return `None`.
 
@@ -247,20 +263,27 @@ class Sampler:
             # For class-conditional sampling, get the token from the provided word class
             if self.conditional_type == "class":
                 if self.dataset_cfg.get("targets") is not None:
-                    conditional_loader = ClassConditionalLoader(words_list=self.dataset_cfg["targets"])
+                    conditional_loader = ClassConditionalLoader(
+                        words_list=self.dataset_cfg["targets"]
+                    )
                 else:
                     conditional_loader = ClassConditionalLoader(
-                        words_file=os.path.join(self.dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
+                        words_file=os.path.join(
+                            self.dataset_cfg.data_base_dir, "HP_VariaNTS_intersection.txt"
+                        )
+                    )
                 return conditional_loader(self.conditional_signal).unsqueeze(0).cuda()
-            
+
             # For brain-conditional sampling, load the provided file directly
             elif self.conditional_type == "brain":
                 return ECOGLoader.process_ecog(self.conditional_signal).unsqueeze(0).cuda()
-            
+
             else:
                 raise ValueError(f"Unknown conditional type: {self.conditional_type}")
 
-    def sampling(self, model: torch.nn.Module, audio_length: int, condition: Optional[Tensor] = None) -> Tensor:
+    def sampling(
+        self, model: torch.nn.Module, audio_length: int, condition: Optional[Tensor] = None
+    ) -> Tensor:
         """
         Perform the complete reverse process p(x_0|x_T)
 
@@ -289,18 +312,20 @@ class Sampler:
 
         # Sample x_T from isotropic standard Gaussian
         x = torch.normal(0, 1, size=size).cuda()
-        
+
         with torch.no_grad():
-            for t in tqdm(range(T-1, -1, -1), desc='Sampling', ncols=100):
+            for t in tqdm(range(T - 1, -1, -1), desc="Sampling", ncols=100):
                 # Broadcast timestep to batchsize shape
                 diffusion_steps = (t * torch.ones((size[0], 1))).cuda()
 
                 # Predict added noise
                 epsilon_theta = model((x, diffusion_steps), condition)
-                
+
                 # Update x_{t-1} to mu_theta(x_t)
-                x = (x - (1-Alpha[t])/torch.sqrt(1-Alpha_bar[t]) * epsilon_theta) / torch.sqrt(Alpha[t])  
+                x = (
+                    x - (1 - Alpha[t]) / torch.sqrt(1 - Alpha_bar[t]) * epsilon_theta
+                ) / torch.sqrt(Alpha[t])
                 if t > 0:
                     # Add the variance term to x_{t-1}
-                    x = x + Sigma[t] * torch.normal(0, 1, size=size).cuda()  
+                    x = x + Sigma[t] * torch.normal(0, 1, size=size).cuda()
         return x

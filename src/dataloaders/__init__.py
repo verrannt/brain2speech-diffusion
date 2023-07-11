@@ -14,31 +14,35 @@ SHUFFLING_SEED = 1144
 
 
 def dataloader(
-    dataset_cfg: DictConfig, 
-    batch_size: int, 
-    is_distributed: bool, 
-    unconditional: bool = True, 
-    uses_test_set: bool = False
+    dataset_cfg: DictConfig,
+    batch_size: int,
+    is_distributed: bool,
+    unconditional: bool = True,
+    uses_test_set: bool = False,
 ) -> Tuple[DataLoader, DataLoader, Optional[DataLoader]]:
     """
     Initialize dataloaders with given configuration options.
 
-    Note that the dataset objects used by the dataloaders consist of two parts: the dataset itself, which loads audio 
-    files from disk, and a conditional loader which loads corresponding conditional inputs, in case conditional training
-    is enabled. The dataset object is the same for all datasets, but the conditional loaders vary:
+    Note that the dataset objects used by the dataloaders consist of two parts: the dataset itself,
+    which loads audio files from disk, and a conditional loader which loads corresponding
+    conditional inputs, in case conditional training is enabled. The dataset object is the same for
+    all datasets, but the conditional loaders vary:
 
     Dataset 1: VariaNTS (conditional or unconditional)
-        The standard VariaNTS words dataset. Can be loaded unconditionally (just the audio data) or conditionally, in
-        which case the conditional input is a one-hot encoded class vector obtained from the `ClassConditionalLoader`.
+        The standard VariaNTS words dataset. Can be loaded unconditionally (just the audio data) or
+        conditionally, in which case the conditional input is a one-hot encoded class vector
+        obtained from the `ClassConditionalLoader`.
 
     Dataset 2: VariaNTS-Brain (always conditional)
-        The VariaNTS word dataset, but paired with ECoG brain recordings. Since there is no 1-to-1 match between the
-        two, for each word obtained from the VariaNTS dataset, a random ECoG recording corresponding to that word will
-        be loaded. This is done using the `ECOGRandomLoader`.
+        The VariaNTS word dataset, but paired with ECoG brain recordings. Since there is no 1-to-1
+        match between the two, for each word obtained from the VariaNTS dataset, a random ECoG
+        recording corresponding to that word will be loaded. This is done using the
+        `ECOGRandomLoader`.
 
     Dataset 3: Brain-Conditional (always conditional)
-        The actual ECoG recording dataset which audio files matching exactly the brain recordings. For this dataset, 
-        the `ECOGExactLoader` is used which fetches the correct ECoG recording for a given audio recording.
+        The actual ECoG recording dataset which audio files matching exactly the brain recordings.
+        For this dataset, the `ECOGExactLoader` is used which fetches the correct ECoG recording for
+        a given audio recording.
 
     Parameters
     ----------
@@ -47,32 +51,35 @@ def dataloader(
     `batch_size`:
         How many datapoints to yield at each iteration of the dataloader
     `is_distributed`:
-        Whether this is a distributed training run or not. If `True`, training data will be subset such that the
-        different GPUs get access to different parts of the dataset only.
+        Whether this is a distributed training run or not. If `True`, training data will be subset
+        such that the different GPUs get access to different parts of the dataset only.
     `unconditional`:
-        Whether the model to be trained is a conditional or unconditional model. This determines how data is loaded for
-        some datasets, or may cause an `AssertionError` if a dataset is incompatible with it.
+        Whether the model to be trained is a conditional or unconditional model. This determines
+        how data is loaded for some datasets, or may cause an `AssertionError` if a dataset is
+        incompatible with it.
     `uses_test_set`:
         Whether a test split is provided and a test dataloader should be created.
-    
+
     Returns
     -------
-    A tuple consisting of the train dataloader, the validation dataloader, and optionally the test dataloader if the 
-    test set is enabled.
+    A tuple consisting of the train dataloader, the validation dataloader, and optionally the test
+    dataloader if the test set is enabled.
 
     Raises
     ------
     `AssertionError`
-        if `unconditional==False` but the dataset name denoted in the `dataset_cfg` is 'brain_cond_variants' or 
-        'brain_cond_hp', since both of these datasets require a conditional model.
+        if `unconditional==False` but the dataset name denoted in the `dataset_cfg` is
+        'brain_cond_variants' or 'brain_cond_hp', since both of these datasets require a
+        conditional model.
     `AssertionError`
-        if the dataset name denoted in the `dataset_cfg` is 'brain_cond_variants', but the `dataset_cfg` does not have the 
-        'ecog_splits_path' key. This splits path is required since there is no 1-to-1 matching between the VariaNTS data
-        and the ECoG recordings, so a separate train/val split has to be provided for the ECoG recordings.
+        if the dataset name denoted in the `dataset_cfg` is 'brain_cond_variants', but the
+        `dataset_cfg` does not have the 'ecog_splits_path' key. This splits path is required since
+        there is no 1-to-1 matching between the VariaNTS data and the ECoG recordings, so a
+        separate train/val split has to be provided for the ECoG recordings.
     `ValueError`
         if the `_name_` specified in the `dataset_cfg` is unknown.
     """
-    
+
     dataset_name = dataset_cfg.pop("_name_")
 
     testset = None
@@ -85,54 +92,55 @@ def dataloader(
                 conditional_loader = ClassConditionalLoader(words_list=dataset_cfg["targets"])
             else:
                 conditional_loader = ClassConditionalLoader(
-                    words_file=join(dataset_cfg.data_base_dir, 'HP_VariaNTS_intersection.txt'))
+                    words_file=join(dataset_cfg.data_base_dir, "HP_VariaNTS_intersection.txt")
+                )
 
     elif dataset_name == "brain_cond_variants":
         assert not unconditional
         ecog_path = Path(dataset_cfg.ecog_path)
-        # Use random conditional loader with separate train and val splits for the ECoG files, because we don't have a
-        # 1-to-1 matching between ECoG and VariaNTS data
-        assert 'ecog_splits_path' in dataset_cfg
+        # Use random conditional loader with separate train and val splits for the ECoG files,
+        # because we don't have a 1-to-1 matching between ECoG and VariaNTS data
+        assert "ecog_splits_path" in dataset_cfg
         conditional_loader = ECOGRandomLoader(
-            path = ecog_path,
-            splits_path = dataset_cfg.ecog_splits_path,
-            seed = SHUFFLING_SEED)
-            
+            path=ecog_path, splits_path=dataset_cfg.ecog_splits_path, seed=SHUFFLING_SEED
+        )
+
     elif dataset_name == "brain_cond_hp":
         assert not unconditional
         ecog_path = Path(dataset_cfg.ecog_path)
         # Use exact conditional loader to get the right ECoG matrix for every audio file
-        conditional_loader = ECOGExactLoader(path = ecog_path)
+        conditional_loader = ECOGExactLoader(path=ecog_path)
 
     else:
-        raise ValueError(f'Unknown dataset specified: {dataset_name}')
-
+        raise ValueError(f"Unknown dataset specified: {dataset_name}")
 
     trainset = CSVDataset(
-        csv_path = dataset_cfg.splits_path,
-        subset = "train",
-        audio_path = dataset_cfg.audio_path,
+        csv_path=dataset_cfg.splits_path,
+        subset="train",
+        audio_path=dataset_cfg.audio_path,
         seed=SHUFFLING_SEED,
-        conditional_loader=conditional_loader)
-    
+        conditional_loader=conditional_loader,
+    )
+
     valset = CSVDataset(
-        csv_path = dataset_cfg.splits_path,
-        subset = "val",
-        audio_path = dataset_cfg.audio_path,
+        csv_path=dataset_cfg.splits_path,
+        subset="val",
+        audio_path=dataset_cfg.audio_path,
         seed=SHUFFLING_SEED,
-        conditional_loader=conditional_loader)
-    
+        conditional_loader=conditional_loader,
+    )
+
     if uses_test_set:
         testset = CSVDataset(
-            csv_path = dataset_cfg.splits_path,
-            subset = "test",
-            audio_path = dataset_cfg.audio_path,
+            csv_path=dataset_cfg.splits_path,
+            subset="test",
+            audio_path=dataset_cfg.audio_path,
             seed=SHUFFLING_SEED,
-            conditional_loader=conditional_loader)
+            conditional_loader=conditional_loader,
+        )
 
-
-    # Use distributed sampling for the train set. Note that we do not use it for validation and testing set, since those 
-    # are only run on the first GPU.
+    # Use distributed sampling for the train set. Note that we do not use it for validation and
+    # testing set, since those are only run on the first GPU.
     train_sampler = DistributedSampler(trainset, shuffle=False) if is_distributed else None
 
     trainloader = DataLoader(

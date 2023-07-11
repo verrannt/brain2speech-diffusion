@@ -1,12 +1,12 @@
 # -----------------------------------------------------------------------------
-# 
-# Generate samples from a trained diffusion model, with conditional input or 
+#
+# Generate samples from a trained diffusion model, with conditional input or
 # fully unconditional. Can be run in the distributed setting with several GPUs
 # for faster performance.
 #
-# For sampling, the `Sampler` object is utilized (refer to `sampler.py` for 
+# For sampling, the `Sampler` object is utilized (refer to `sampler.py` for
 # details).
-# 
+#
 # Configuration options are loaded via the `configs/config.yaml` file, and can
 # be overwritten when calling this script. Please see this repository's main
 # `README.md` for a detailed explanation of how to use this script.
@@ -25,12 +25,12 @@ from sampler import Sampler
 
 def generate(
     rank: int,
-    diffusion_cfg: DictConfig, 
-    model_cfg: DictConfig, 
-    dataset_cfg: DictConfig, 
-    generate_cfg: DictConfig
+    diffusion_cfg: DictConfig,
+    model_cfg: DictConfig,
+    dataset_cfg: DictConfig,
+    generate_cfg: DictConfig,
 ) -> None:
-    ckpt_epoch = generate_cfg.pop('ckpt_epoch')
+    ckpt_epoch = generate_cfg.pop("ckpt_epoch")
     sampler = Sampler(
         rank=rank,
         diffusion_cfg=diffusion_cfg,
@@ -43,7 +43,7 @@ def generate(
 @hydra.main(version_base=None, config_path="../configs/", config_name="config")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    OmegaConf.set_struct(cfg, False) # Allow writing keys
+    OmegaConf.set_struct(cfg, False)  # Allow writing keys
 
     num_gpus = torch.cuda.device_count()
     generate_fn = partial(

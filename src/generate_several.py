@@ -70,34 +70,37 @@ from utils.generic import create_output_directory, get_word_from_filepath
 
 
 def get_files(conditional_type, split, data_base_dir, n_samples_per_word=16):
-    if conditional_type == 'brain':
-        data_path = os.path.join(data_base_dir, "HP1_ECoG_conditional/sub-002") 
-        split_path = os.path.join(data_base_dir, f"datasplits/HP1_ECoG_conditional/sub-002/{split}.csv")
+    if conditional_type == "brain":
+        data_path = os.path.join(data_base_dir, "HP1_ECoG_conditional/sub-002")
+        split_path = os.path.join(
+            data_base_dir, f"datasplits/HP1_ECoG_conditional/sub-002/{split}.csv"
+        )
         return get_files_from_datasplit(split_path, n_samples_per_word), data_path
 
-    with open(os.path.join(data_base_dir, "HP_VariaNTS_intersection.txt"), 'r') as f:
-        words = f.read().split(',')
-    
-    if conditional_type == 'class':
+    with open(os.path.join(data_base_dir, "HP_VariaNTS_intersection.txt"), "r") as f:
+        words = f.read().split(",")
+
+    if conditional_type == "class":
         return [(word, n_samples_per_word) for word in words], None
-    
+
     elif conditional_type is None:
         return [(None, n_samples_per_word) for _ in words], None
-    
+
     else:
-        raise ValueError('Unrecognized conditional input type:', conditional_type)
+        raise ValueError("Unrecognized conditional input type:", conditional_type)
+
 
 def get_files_from_datasplit(split_path, n_samples_per_word=16):
     # Read the files for the respective split
     with open(split_path, "r") as f:
-        files = f.read().split(',')
-        files = [fn.replace('.wav', '.npy') for fn in files]
+        files = f.read().split(",")
+        files = [fn.replace(".wav", ".npy") for fn in files]
 
     # Get unique words
     words = np.unique([get_word_from_filepath(fn) for fn in files])
 
     chosen_files = []
-    
+
     # For each word ...
     for word in words:
         # Chose the files for this word
@@ -117,23 +120,23 @@ def get_files_from_datasplit(split_path, n_samples_per_word=16):
 @hydra.main(version_base=None, config_path="configs/", config_name="config")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    OmegaConf.set_struct(cfg, False) # Allow writing keys
-    
+    OmegaConf.set_struct(cfg, False)  # Allow writing keys
+
     if cfg.model.unconditional == True:
         cfg.generate.conditional_type = None
 
     if cfg.use_val == True:
         files, data_path = get_files(
-            cfg.generate.conditional_type, 'val', 
-            cfg.dataset.data_base_dir, 16)
+            cfg.generate.conditional_type, "val", cfg.dataset.data_base_dir, 16
+        )
     else:
         files, data_path = get_files(
-            cfg.generate.conditional_type, 'train', 
-            cfg.dataset.data_base_dir, 16)
-    
+            cfg.generate.conditional_type, "train", cfg.dataset.data_base_dir, 16
+        )
+
     print(files)
 
-    ckpt_epoch = cfg.generate.pop('ckpt_epoch')
+    ckpt_epoch = cfg.generate.pop("ckpt_epoch")
 
     sampler = Sampler(
         rank=0,
@@ -142,30 +145,31 @@ def main(cfg: DictConfig) -> None:
         **cfg.generate,
     )
 
-    create_output_directory(sampler.name, 'waveforms')
+    create_output_directory(sampler.name, "waveforms")
 
-    model, ckpt_epoch = sampler.load_model(sampler.name, cfg.model, ckpt_epoch, sampler.conditional_signal is None)
+    model, ckpt_epoch = sampler.load_model(
+        sampler.name, cfg.model, ckpt_epoch, sampler.conditional_signal is None
+    )
 
     output_subdir = f"waveforms_{'val' if cfg.use_val==True else 'train'}"
 
     for i, (word, count) in enumerate(files):
-
-        print('-'*80)
+        print("-" * 80)
         print(f"{i+1}/{len(files)}: Running {word if word is not None else 'Any'} x{count}")
 
-        if cfg.generate.conditional_type == 'brain':
+        if cfg.generate.conditional_type == "brain":
             sampler.conditional_signal = os.path.join(data_path, word)
-        elif cfg.generate.conditional_type == 'class':
+        elif cfg.generate.conditional_type == "class":
             sampler.conditional_signal = word
         elif cfg.generate.conditional_type is None:
             sampler.conditional_signal = None
         else:
-            raise ValueError('Unrecognized conditional type:', cfg.generate.conditional_type)
+            raise ValueError("Unrecognized conditional type:", cfg.generate.conditional_type)
         sampler.n_samples = count
         sampler.batch_size = count
 
         sampler.run(ckpt_epoch, cfg.model, model=model, output_subdir=output_subdir)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     main()

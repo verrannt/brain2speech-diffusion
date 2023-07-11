@@ -12,10 +12,10 @@ Output:
 
 class BrainEncoder(nn.Module):
     def __init__(
-        self, 
-        c_in : int = 32,
-        c_mid : int = 64,
-        c_out : int = 128,
+        self,
+        c_in: int = 32,
+        c_mid: int = 64,
+        c_out: int = 128,
         **kwargs,
     ):
         super().__init__()
@@ -31,7 +31,7 @@ class BrainEncoder(nn.Module):
         conv2 = nn.ConvTranspose1d(c_mid, c_mid, _kernel_size, padding=_padding, stride=_stride)
         conv2 = nn.utils.weight_norm(conv2)
         nn.init.kaiming_normal_(conv2.weight)
-        
+
         conv3 = nn.ConvTranspose1d(c_mid, c_out, _kernel_size, padding=_padding, stride=_stride)
         conv3 = nn.utils.weight_norm(conv3)
         nn.init.kaiming_normal_(conv3.weight)

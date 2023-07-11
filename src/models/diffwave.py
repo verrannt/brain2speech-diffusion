@@ -6,10 +6,9 @@ import torch.nn as nn
 from .utils import *
 
 
-
 class DiffusionEmbedding(nn.Module):
     def __init__(
-        self, 
+        self,
         input_dim: int = 128,
         mid_dim: int = 512,
         out_dim: int = 512,
@@ -22,19 +21,17 @@ class DiffusionEmbedding(nn.Module):
 
     def forward(self, diffusion_steps):
         # Embed diffusion step t
-        x = calc_diffusion_step_embedding(
-            diffusion_steps, self.input_dim
-        )
+        x = calc_diffusion_step_embedding(diffusion_steps, self.input_dim)
 
         x = swish(self.fc1(x))
         x = swish(self.fc2(x))
-        
+
         return x
 
 
 class ResidualBlock(nn.Module):
     def __init__(
-        self, 
+        self,
         res_channels: int,
         skip_channels: int,
         dilation: int = 1,
@@ -50,16 +47,14 @@ class ResidualBlock(nn.Module):
 
         # Dilated conv layer
         self.dilated_conv = Conv(
-            res_channels, 2 * self.res_channels, 
-            kernel_size=3, 
-            dilation=dilation
+            res_channels, 2 * self.res_channels, kernel_size=3, dilation=dilation
         )
 
         if unconditional:
             self.local_conditioner = None
         else:
             # Layer-specific 1x1 convolution for conditional input embedding
-            self.local_conditioner = Conv(conditioner_channels, 2*res_channels, kernel_size=1)
+            self.local_conditioner = Conv(conditioner_channels, 2 * res_channels, kernel_size=1)
 
         # Residual conv1x1 layer, connect to next residual layer
         self.res_conv = Conv(res_channels, res_channels, kernel_size=1)
@@ -84,17 +79,17 @@ class ResidualBlock(nn.Module):
         # to the hidden states.
         if conditional_input is not None:
             assert self.local_conditioner is not None
-            
+
             conditional_input = self.local_conditioner(conditional_input)
-            
+
             assert conditional_input.size(2) >= L
             if conditional_input.size(2) > L:
-                conditional_input = conditional_input[:,:,:L]
-            
+                conditional_input = conditional_input[:, :, :L]
+
             h = h + conditional_input
 
         # Gated tanh nonlinearity (similar to LSTMs)
-        gate, filter = h[:,self.res_channels:,:], h[:,:self.res_channels,:]
+        gate, filter = h[:, self.res_channels :, :], h[:, : self.res_channels, :]
         out = torch.sigmoid(gate) * torch.tanh(filter)
 
         # Residual and skip outputs
@@ -108,19 +103,19 @@ class ResidualBlock(nn.Module):
 
 class DiffWave(nn.Module):
     def __init__(
-        self, 
-        in_channels: int = 1, 
-        res_channels: int = 256, 
-        skip_channels: int = 128, 
+        self,
+        in_channels: int = 1,
+        res_channels: int = 256,
+        skip_channels: int = 128,
         out_channels: int = 1,
-        num_res_layers: int = 30, 
+        num_res_layers: int = 30,
         dilation_cycle: int = 10,
         diffusion_step_embed_dim_in: int = 128,
         diffusion_step_embed_dim_mid: int = 512,
         diffusion_step_embed_dim_out: int = 512,
         unconditional: bool = False,
         conditioner_channels: int = 128,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.res_channels = res_channels
@@ -128,10 +123,7 @@ class DiffWave(nn.Module):
         self.num_res_layers = num_res_layers
 
         # Initial conv1x1 with relu
-        self.init_conv = nn.Sequential(
-            Conv(in_channels, res_channels, kernel_size=1),
-            nn.ReLU()
-        )
+        self.init_conv = nn.Sequential(Conv(in_channels, res_channels, kernel_size=1), nn.ReLU())
 
         # Diffusion step embedding
         self.diffusion_embedding = DiffusionEmbedding(
@@ -141,19 +133,24 @@ class DiffWave(nn.Module):
         self.unconditional = unconditional
 
         # All residual layers with dilations 1, 2, ... , 512, ... , 1, 2, ..., 512
-        self.residual_layers = nn.ModuleList([
-            ResidualBlock(
-                res_channels, skip_channels,
-                dilation=2 ** (n % dilation_cycle),
-                diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                unconditional=unconditional, conditioner_channels=conditioner_channels,
-            ) for n in range(self.num_res_layers)
-        ])
+        self.residual_layers = nn.ModuleList(
+            [
+                ResidualBlock(
+                    res_channels,
+                    skip_channels,
+                    dilation=2 ** (n % dilation_cycle),
+                    diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
+                    unconditional=unconditional,
+                    conditioner_channels=conditioner_channels,
+                )
+                for n in range(self.num_res_layers)
+            ]
+        )
 
         self.final_conv = nn.Sequential(
             Conv(skip_channels, skip_channels, kernel_size=1),
             nn.ReLU(),
-            ZeroConv1d(skip_channels, out_channels)
+            ZeroConv1d(skip_channels, out_channels),
         )
 
     def forward(self, input_data, conditional_input=None):
@@ -163,14 +160,15 @@ class DiffWave(nn.Module):
         diffusion_step_embed = self.diffusion_embedding(diffusion_steps)
 
         if conditional_input is not None:
-            assert self.unconditional == False, "Model was passed conditional input but is not configured for it."
+            assert (
+                self.unconditional == False
+            ), "Model was passed conditional input but is not configured for it."
 
         skip = 0
         for layer in self.residual_layers:
-            
             # Use the output from a residual layer as input to the next one
             x, skip_n = layer(x, diffusion_step_embed, conditional_input)
-            
+
             # Accumulate all skip outputs
             skip = skip + skip_n
 
@@ -182,5 +180,7 @@ class DiffWave(nn.Module):
         return x
 
     def __repr__(self):
-        return f"DiffWave_h{self.res_channels}_d{self.num_res_layers}_"\
-               f"{'uncond' if self.unconditional else 'cond'}"
+        return (
+            f"DiffWave_h{self.res_channels}_d{self.num_res_layers}_"
+            f"{'uncond' if self.unconditional else 'cond'}"
+        )
