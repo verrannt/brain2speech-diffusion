@@ -16,23 +16,22 @@ class BrainEncoder(nn.Module):
         c_in: int = 32,
         c_mid: int = 64,
         c_out: int = 128,
+        kernel_size: int = 18,
+        padding: int = 3,
+        stride: int = 6,
         **kwargs,
     ):
         super().__init__()
 
-        _kernel_size = 18
-        _padding = 3
-        _stride = 6
-
-        conv1 = nn.ConvTranspose1d(c_in, c_mid, _kernel_size, padding=_padding, stride=_stride + 2)
+        conv1 = nn.ConvTranspose1d(c_in, c_mid, kernel_size, padding=padding, stride=stride + 2)
         conv1 = nn.utils.weight_norm(conv1)
         nn.init.kaiming_normal_(conv1.weight)
 
-        conv2 = nn.ConvTranspose1d(c_mid, c_mid, _kernel_size, padding=_padding, stride=_stride)
+        conv2 = nn.ConvTranspose1d(c_mid, c_mid, kernel_size, padding=padding, stride=stride)
         conv2 = nn.utils.weight_norm(conv2)
         nn.init.kaiming_normal_(conv2.weight)
 
-        conv3 = nn.ConvTranspose1d(c_mid, c_out, _kernel_size, padding=_padding, stride=_stride)
+        conv3 = nn.ConvTranspose1d(c_mid, c_out, kernel_size, padding=padding, stride=stride)
         conv3 = nn.utils.weight_norm(conv3)
         nn.init.kaiming_normal_(conv3.weight)
 
