@@ -162,13 +162,15 @@ def main(
     for interval in track(intervals, description="Processing Intervals", transient=True):
         word_counter[interval["text"]] += 1
 
-        ecog_begin = floor((interval["xmin"] + range_min) * sampling_rate)
+        ecog_begin = int(interval["xmin"] * sampling_rate) + int(range_min * sampling_rate)
         # Either use the longest fragment length as the length for every fragment, or use the user-
         # specified maximum range
         if range_max == "max":
-            ecog_end = ceil((interval["xmin"] + max_len) * sampling_rate)
+            ecog_end = int(interval["xmin"] * sampling_rate) + int(max_len * sampling_rate) + 1
         else:
-            ecog_end = ceil((interval["xmin"] + float(range_max)) * sampling_rate)
+            ecog_end = (
+                int(interval["xmin"] * sampling_rate) + int(float(range_max) * sampling_rate) + 1
+            )
         ecog = ecogs[interval["run"] - 1][ecog_begin:ecog_end]
         # -> Shape (TIMESTEPS, ELECTRODES)
 
