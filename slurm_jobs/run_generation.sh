@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=72
 #SBATCH --gpus=4
-#SBATCH --time=00:40:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=gpu
 
 echo
@@ -19,61 +19,63 @@ module load 2021
 module load cuDNN/8.2.1.32-CUDA-11.3.1
 module load Python/3.9.5-GCCcore-10.3.0
 
+# Activate python virtual environment
 echo [$(date +"%T")] Activating virtual environment
 source venvs/diffwave/bin/activate
 
-echo [$(date +"%T")] Copying data
-cp -r $HOME/data $TMPDIR/data
-
-echo [$(date +"%T")] Copying DiffWave codebase
+# Copy codebase
+echo [$(date +"%T")] Copying codebase
 cp -r $HOME/brain2speech-diffusion $TMPDIR/brain2speech-diffusion
 
-echo [$(date +"%T")] Copying DiffWave checkpoints
-cp -r $HOME/exp $TMPDIR/exp
-
-echo [$(date +"%T")] Navigating to $TMPDIR
-cd $TMPDIR
+# Change directory
+echo [$(date +"%T")] Navigating to $TMPDIR/brain2speech-diffusion
+cd $TMPDIR/brain2speech-diffusion
 
 # Run computation
-# It's important to run this from the base dir (i.e. $TMPDIR), such that the
-# `exp` output directory is in the base dir, too, and can be appropriately copied
 echo [$(date +"%T")] Executing generate script
 # Note: for the unconditional model, the standard generate.py script is used, 
 # as no separation by word classes is required, and parallelization can
 # therefore be used easily.
-python brain2speech-diffusion/generate.py \
-    experiment=pretraining_uncond_variants \
-    dataset.data_base_dir="$TMPDIR"/data/ \
-    generate.name=Uncond-PT-v9-noaug \
-    generate.conditional_type=null \
-    generate.conditional_signal=null \
-    generate.ckpt_epoch=1000 \
-    generate.n_samples=220 \
-    generate.batch_size=20
-# python brain2speech-diffusion/generate_several.py \
-#     experiment=pretraining_class_cond_variants \
-#     dataset.data_base_dir="$TMPDIR"/data/ \
-#     generate.name=VariaNTSWords-CC-v3 \
+# python src/generate.py \
+#     experiment=SG-U \
+#     generate.name=SG-U_v10 \
+#     generate.conditional_type=null \
+#     generate.conditional_signal=null \
+#     generate.ckpt_epoch=500 \
+#     generate.n_samples=220 \
+#     generate.batch_size=20
+# python src/generate_several.py \
+#     experiment=SG-C \
+#     generate.name=SG-C_v4 \
 #     generate.conditional_type=class \
-#     generate.ckpt_epoch=180 \
+#     generate.ckpt_epoch=490 \
+#     dataset.targets=[dag,heel,kan,keer,man,wel] \
+#     model.encoder_config.n_classes=6 \
 #     +use_val=False
-# python brain2speech-diffusion/generate_several.py \
-#     experiment=finetuning_brain_cond_hp \
-#     dataset.data_base_dir="$TMPDIR"/data/ \
-#     generate.name=BrainCond-FT-HP-v5 \
+# python src/generate_several.py \
+#     experiment=B2S-Ur \
+#     generate.name=B2S-Ur_v6 \
 #     generate.conditional_type=brain \
-#     generate.ckpt_epoch=70 \
+#     generate.ckpt_epoch=45 \
+#     model.encoder_config.c_in=123 \
+#     model.encoder_config.c_mid=128 \
+#     model.encoder_config.c_out=128 \
+#     +model.encoder_config.kernel_size=32 \
+#     +model.encoder_config.stride=12 \
 #     +use_val=False
-# python brain2speech-diffusion/generate_several.py \
-#     experiment=finetuning_brain_cond_variants \
-#     dataset.data_base_dir="$TMPDIR"/data/ \
-#     generate.name=BrainCond-FT-VariaNTS-v3 \
-#     generate.conditional_type=brain \
-#     generate.ckpt_epoch=??? \
-#     +use_val=False
-# python brain2speech-diffusion/generate_several.py \
-#     experiment=finetuning_brain_class_cond_variants \
-#     dataset.data_base_dir="$TMPDIR"/data/ \
+python src/generate_several.py \
+    experiment=B2S-Uv \
+    generate.name=B2S-Uv_v4 \
+    generate.conditional_type=brain \
+    generate.ckpt_epoch=490 \
+    model.encoder_config.c_in=123 \
+    model.encoder_config.c_mid=128 \
+    model.encoder_config.c_out=128 \
+    +model.encoder_config.kernel_size=32 \
+    +model.encoder_config.stride=12 \
+    +use_val=False
+# python src/generate_several.py \
+#     experiment=B2S-Cv \
 #     generate.name=BrainClassCond-FT-VariaNTS-v9 \
 #     generate.conditional_type=brain \
 #     generate.ckpt_epoch=800 \
@@ -81,7 +83,7 @@ python brain2speech-diffusion/generate.py \
 
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
-cp -r $TMPDIR/exp/* $HOME/exp
+cp -r exp/* $HOME/brain2speech-diffusion/exp
 
 # Deactivate virtual environment
 echo [$(date +"%T")] Deactivating virtual environment
