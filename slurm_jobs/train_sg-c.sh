@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name="train-diffwave-class-conditional"
+#SBATCH --job-name="train-sg-c"
 #SBATCH --nodes=1
 #SBATCH --ntasks=72
 #SBATCH --gpus=4
-#SBATCH --time=63:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=gpu
 
 echo
-echo CLASS-CONDITIONAL PRE-TRAINING RUN
+echo TRAIN SG-C
 echo 
 echo $(date +"%D %T")
 echo
@@ -34,11 +34,11 @@ cd $TMPDIR/brain2speech-diffusion
 # Run computation
 echo [$(date +"%T")] Executing train script
 python src/train.py \
-    train.name=SG-C_v3 \
+    train.name=SG-C_v4 \
     experiment=SG-C \
     generate.conditional_signal=dag \
     generate.conditional_type=class \
-    train.n_epochs=320 \
+    train.n_epochs=250 \
     train.epochs_per_ckpt=10 \
     train.iters_per_logging=50 \
     train.batch_size_per_gpu=12 \
@@ -47,9 +47,15 @@ python src/train.py \
     # wandb.id=<id> \
     # +wandb.resume=true \
 
+# NOTE If you want to train the model on a different dataset, you might have
+# to configure the following options:
+# - dataset.splits_path
+# - dataset.targets
+# - model.encoder_config.n_classes
+
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
-cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp
+cp -r exp/* $HOME/brain2speech-diffusion/exp
 
 # Deactivate virtual environment
 echo [$(date +"%T")] Deactivating virtual environment

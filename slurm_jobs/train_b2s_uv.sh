@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name="diffwave-brain-finetuning-vnts"
+#SBATCH --job-name="b2s-uv"
 #SBATCH --nodes=1
 #SBATCH --ntasks=72
 #SBATCH --gpus=4
-#SBATCH --time=26:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=gpu
 
 echo
-echo FINETUNE UNCONDITIONAL DIFFWAVE MODEL ON HARRY POTTER ECOG AND VARIANTS AUDIO DATA
+echo TRAIN B2S-Uv
 echo 
 echo $(date +"%D %T")
 echo
@@ -47,11 +47,20 @@ python src/train.py \
     generate.n_samples=12 \
     wandb.mode=online \
     # wandb.id=<id> \
-    # +wandb.resume=true \
+    # +wandb.resume=true
+
+# NOTE If you want to train the model on a different dataset, you might have
+# to configure the following options:
+# - generate.conditional_signal
+# - dataset.splits_path
+# - dataset.ecog_path
+# - dataset.ecog_splits_path
+# - model.pretrained_generator
+# - model.encoder_config
 
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
-cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp
+cp -r exp/* $HOME/brain2speech-diffusion/exp
 
 # Deactivate virtual environment
 echo [$(date +"%T")] Deactivating virtual environment

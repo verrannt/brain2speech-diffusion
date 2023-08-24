@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name="train-diffwave-unconditional"
+#SBATCH --job-name="train-sg-u"
 #SBATCH --nodes=1
 #SBATCH --ntasks=72
 #SBATCH --gpus=4
-#SBATCH --time=65:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=gpu
 
 echo
-echo UNCONDITIONAL PRE-TRAINING RUN
+echo TRAIN SG-U
 echo 
 echo $(date +"%D %T")
 echo
@@ -34,7 +34,7 @@ cd $TMPDIR/brain2speech-diffusion
 # Run computation
 echo [$(date +"%T")] Executing train script
 python src/train.py \
-    train.name=SG-U_v9 \
+    train.name=SG-U_v10 \
     experiment=SG-U \
     generate.conditional_signal=null \
     train.n_epochs=250 \
@@ -48,7 +48,7 @@ python src/train.py \
 
 # Retrieve outputs
 echo [$(date +"%T")] Retrieving outputs
-cp -r $TMPDIR/brain2speech-diffusion/exp/* $HOME/brain2speech-diffusion/exp
+cp -r exp/* $HOME/brain2speech-diffusion/exp
 
 # Deactivate virtual environment
 echo [$(date +"%T")] Deactivating virtual environment
